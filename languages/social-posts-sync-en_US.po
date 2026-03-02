@@ -1,12 +1,12 @@
 # English (United States) translation for Social Posts Sync
-# Copyright (C) 2024 Social Posts Sync
+# Copyright (C) 2026 Social Posts Sync
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Social Posts Sync 1.0.0\n"
+"Project-Id-Version: Social Posts Sync 1.1.0\n"
 "Report-Msgid-Bugs-To: https://github.com/Hylbee/social-posts-sync/issues\n"
-"POT-Creation-Date: 2024-01-01T00:00:00+00:00\n"
-"PO-Revision-Date: 2024-01-01T00:00:00+00:00\n"
+"POT-Creation-Date: 2026-03-02T00:00:00+00:00\n"
+"PO-Revision-Date: 2026-03-02 12:07+0100\n"
 "Last-Translator: Your Name <email@example.com>\n"
 "Language-Team: English (United States) <en@li.org>\n"
 "Language: en_US\n"
@@ -14,24 +14,18 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Social Posts Sync\n"
+"X-Generator: Poedit 3.5\n"
 "X-Domain: social-posts-sync\n"
 
-#: includes/Admin/SettingsPage.php:64
-#: includes/Admin/SettingsPage.php:65
+#: includes/Admin/SettingsPage.php:64 includes/Admin/SettingsPage.php:65
 msgid "Social Posts Sync"
 msgstr "Social Posts Sync"
 
-#: includes/Admin/SettingsPage.php:92
-#: includes/Admin/SettingsPage.php:119
-#: includes/Admin/SettingsPage.php:184
-#: includes/Admin/SettingsPage.php:214
-#: includes/Admin/SettingsPage.php:233
-#: includes/Admin/SettingsPage.php:262
-#: includes/Admin/SettingsPage.php:291
-#: includes/Admin/SettingsPage.php:435
-#: includes/Admin/SettingsPage.php:464
-#: includes/Admin/SettingsPage.php:617
+#: includes/Admin/SettingsPage.php:92 includes/Admin/SettingsPage.php:119
+#: includes/Admin/SettingsPage.php:184 includes/Admin/SettingsPage.php:214
+#: includes/Admin/SettingsPage.php:233 includes/Admin/SettingsPage.php:262
+#: includes/Admin/SettingsPage.php:291 includes/Admin/SettingsPage.php:435
+#: includes/Admin/SettingsPage.php:464 includes/Admin/SettingsPage.php:617
 msgid "Accès non autorisé."
 msgstr "Unauthorized access."
 
@@ -71,20 +65,22 @@ msgstr "Successfully connected to Meta!"
 msgid "Déconnecté de Meta."
 msgstr "Disconnected from Meta."
 
-#: includes/Admin/SettingsPage.php:521
 #. translators: %s: OAuth error message
+#: includes/Admin/SettingsPage.php:521
 msgid "Erreur OAuth : %s"
 msgstr "OAuth error: %s"
 
 #: includes/Admin/SettingsPage.php:529
-msgid "Votre token Meta expire bientôt. Reconnectez-vous pour éviter toute interruption."
+msgid ""
+"Votre token Meta expire bientôt. Reconnectez-vous pour éviter toute "
+"interruption."
 msgstr "Your Meta token is expiring soon. Reconnect to avoid any interruption."
 
 #: includes/Admin/SettingsPage.php:549
 msgid "Configuration API"
 msgstr "API Configuration"
 
-#: includes/Admin/SettingsPage.php:550
+#: includes/Admin/SettingsPage.php:550 includes/Admin/Tabs/SyncTab.php:180
 msgid "Sources"
 msgstr "Sources"
 
@@ -96,8 +92,8 @@ msgstr "Sync"
 msgid "Avancé"
 msgstr "Advanced"
 
-#: includes/Admin/SettingsPage.php:672
 #. translators: %d: number of deleted posts
+#: includes/Admin/SettingsPage.php:672
 msgid "%d publication supprimée."
 msgid_plural "%d publications supprimées."
 msgstr[0] "%d post deleted."
@@ -108,8 +104,12 @@ msgid "Identifiants de l'application Meta"
 msgstr "Meta Application Credentials"
 
 #: includes/Admin/Tabs/ApiTab.php:34
-msgid "Créez une application sur developers.facebook.com et renseignez vos identifiants ci-dessous."
-msgstr "Create an application on developers.facebook.com and enter your credentials below."
+msgid ""
+"Créez une application sur developers.facebook.com et renseignez vos "
+"identifiants ci-dessous."
+msgstr ""
+"Create an application on developers.facebook.com and enter your credentials "
+"below."
 
 #: includes/Admin/Tabs/ApiTab.php:44
 msgid "App ID"
@@ -139,8 +139,8 @@ msgstr "Meta Connection"
 msgid "Connecté"
 msgstr "Connected"
 
-#: includes/Admin/Tabs/ApiTab.php:86
 #. translators: %s: Token expiry date
+#: includes/Admin/Tabs/ApiTab.php:86
 msgid "Token valide jusqu'au : %s"
 msgstr "Token valid until: %s"
 
@@ -156,8 +156,8 @@ msgstr "Not connected"
 msgid "Se connecter avec Facebook"
 msgstr "Connect with Facebook"
 
-#: includes/Admin/Tabs/ApiTab.php:117
 #. translators: %s: Redirect URI
+#: includes/Admin/Tabs/ApiTab.php:117
 msgid "URI de redirection à enregistrer dans votre App Meta : %s"
 msgstr "Redirect URI to register in your Meta App: %s"
 
@@ -190,8 +190,12 @@ msgid "Enregistrer les sources"
 msgstr "Save Sources"
 
 #: includes/Admin/Tabs/SourcesTab.php:80
-msgid "Aucune source configurée. Cliquez sur « Actualiser les sources disponibles » pour charger vos pages Facebook."
-msgstr "No sources configured. Click \"Refresh available sources\" to load your Facebook pages."
+msgid ""
+"Aucune source configurée. Cliquez sur « Actualiser les sources disponibles » "
+"pour charger vos pages Facebook."
+msgstr ""
+"No sources configured. Click \"Refresh available sources\" to load your "
+"Facebook pages."
 
 #: includes/Admin/Tabs/SourcesTab.php:86
 msgid "Pages Facebook"
@@ -234,6 +238,7 @@ msgid "Source"
 msgstr "Source"
 
 #: includes/Admin/Tabs/SyncTab.php:47
+#: includes/Admin/Metaboxes/SocialInfoMetabox.php:62
 msgid "Plateforme"
 msgstr "Platform"
 
@@ -245,8 +250,7 @@ msgstr "Last sync"
 msgid "Publications"
 msgstr "Posts"
 
-#: includes/Admin/Tabs/SyncTab.php:59
-#: includes/Admin/Tabs/SyncTab.php:83
+#: includes/Admin/Tabs/SyncTab.php:59 includes/Admin/Tabs/SyncTab.php:83
 msgid "Jamais"
 msgstr "Never"
 
@@ -259,8 +263,12 @@ msgid "Posts max par source"
 msgstr "Max posts per source"
 
 #: includes/Admin/Tabs/SyncTab.php:122
-msgid "Nombre maximum de publications récupérées par source à chaque synchronisation (1–100). L'API Meta renvoie au maximum 100 par page."
-msgstr "Maximum number of posts fetched per source on each sync (1–100). The Meta API returns up to 100 per page."
+msgid ""
+"Nombre maximum de publications récupérées par source à chaque "
+"synchronisation (1–100). L'API Meta renvoie au maximum 100 par page."
+msgstr ""
+"Maximum number of posts fetched per source on each sync (1–100). The Meta "
+"API returns up to 100 per page."
 
 #: includes/Admin/Tabs/SyncTab.php:128
 msgid "Enregistrer"
@@ -302,10 +310,6 @@ msgstr "Success"
 msgid "Erreurs"
 msgstr "Errors"
 
-#: includes/Admin/Tabs/SyncTab.php:180
-msgid "Sources"
-msgstr "Sources"
-
 #: includes/Admin/Tabs/AdvancedTab.php:19
 msgid "Paramètres avancés"
 msgstr "Advanced Settings"
@@ -323,16 +327,25 @@ msgid "Attention :"
 msgstr "Warning:"
 
 #: includes/Admin/Tabs/AdvancedTab.php:29
-msgid "Modifier le slug de base change l'URL de toutes vos publications sociales. Les anciennes URLs cesseront de fonctionner et vos liens Elementor pourraient se briser. Videz le cache de votre site après la modification."
-msgstr "Changing the base slug will change the URL of all your social posts. Old URLs will stop working and your Elementor links may break. Clear your site cache after making changes."
+msgid ""
+"Modifier le slug de base change l'URL de toutes vos publications sociales. "
+"Les anciennes URLs cesseront de fonctionner et vos liens Elementor "
+"pourraient se briser. Videz le cache de votre site après la modification."
+msgstr ""
+"Changing the base slug will change the URL of all your social posts. Old "
+"URLs will stop working and your Elementor links may break. Clear your site "
+"cache after making changes."
 
 #: includes/Admin/Tabs/AdvancedTab.php:40
 msgid "Slug de base des publications"
 msgstr "Posts base slug"
 
 #: includes/Admin/Tabs/AdvancedTab.php:51
-msgid "Par défaut : social-posts. N'utilisez que des lettres minuscules, chiffres et tirets."
-msgstr "Default: social-posts. Use only lowercase letters, numbers and hyphens."
+msgid ""
+"Par défaut : social-posts. N'utilisez que des lettres minuscules, chiffres "
+"et tirets."
+msgstr ""
+"Default: social-posts. Use only lowercase letters, numbers and hyphens."
 
 #: includes/Admin/Tabs/AdvancedTab.php:57
 msgid "Enregistrer le slug"
@@ -347,8 +360,13 @@ msgid "Re-synchronisation complète"
 msgstr "Full Re-sync"
 
 #: includes/Admin/Tabs/AdvancedTab.php:70
-msgid "Supprime les dates de dernière synchro. La prochaine synchronisation récupèrera tous les posts depuis le début, sans toucher aux publications existantes."
-msgstr "Removes last sync timestamps. The next sync will fetch all posts from the beginning, without touching existing posts."
+msgid ""
+"Supprime les dates de dernière synchro. La prochaine synchronisation "
+"récupèrera tous les posts depuis le début, sans toucher aux publications "
+"existantes."
+msgstr ""
+"Removes last sync timestamps. The next sync will fetch all posts from the "
+"beginning, without touching existing posts."
 
 #: includes/Admin/Tabs/AdvancedTab.php:75
 msgid "Réinitialiser les timestamps"
@@ -359,8 +377,12 @@ msgid "Supprimer toutes les publications synchronisées"
 msgstr "Delete all synced posts"
 
 #: includes/Admin/Tabs/AdvancedTab.php:83
-msgid "Supprime définitivement tous les posts de type \"social_post\" et leurs médias associés. Les réglages et la connexion Meta sont conservés."
-msgstr "Permanently deletes all \"social_post\" posts and their associated media. Settings and Meta connection are preserved."
+msgid ""
+"Supprime définitivement tous les posts de type \"social_post\" et leurs "
+"médias associés. Les réglages et la connexion Meta sont conservés."
+msgstr ""
+"Permanently deletes all \"social_post\" posts and their associated media. "
+"Settings and Meta connection are preserved."
 
 #: includes/Admin/Tabs/AdvancedTab.php:88
 msgid "Supprimer les publications"
@@ -371,8 +393,12 @@ msgid "Réinitialisation complète du plugin"
 msgstr "Full Plugin Reset"
 
 #: includes/Admin/Tabs/AdvancedTab.php:96
-msgid "Supprime toutes les publications, tous les médias importés, la connexion Meta, les réglages et les timestamps. Remet le plugin à zéro."
-msgstr "Deletes all posts, all imported media, the Meta connection, settings and timestamps. Resets the plugin to factory defaults."
+msgid ""
+"Supprime toutes les publications, tous les médias importés, la connexion "
+"Meta, les réglages et les timestamps. Remet le plugin à zéro."
+msgstr ""
+"Deletes all posts, all imported media, the Meta connection, settings and "
+"timestamps. Resets the plugin to factory defaults."
 
 #: includes/Admin/Tabs/AdvancedTab.php:101
 msgid "Tout réinitialiser"
@@ -381,10 +407,6 @@ msgstr "Reset Everything"
 #: includes/Admin/Metaboxes/SocialInfoMetabox.php:27
 msgid "Informations sociales"
 msgstr "Social Information"
-
-#: includes/Admin/Metaboxes/SocialInfoMetabox.php:62
-msgid "Plateforme"
-msgstr "Platform"
 
 #: includes/Admin/Metaboxes/SocialInfoMetabox.php:68
 msgid "Publié le"
@@ -395,6 +417,7 @@ msgid "Auteur"
 msgstr "Author"
 
 #: includes/Admin/Metaboxes/SocialInfoMetabox.php:79
+#: includes/CPT/SocialPostCPT.php:169
 msgid "Likes"
 msgstr "Likes"
 
@@ -410,8 +433,8 @@ msgstr "View original post"
 msgid "Vidéo"
 msgstr "Video"
 
-#: includes/Admin/Metaboxes/SocialInfoMetabox.php:122
 #. translators: %d: number of media URLs
+#: includes/Admin/Metaboxes/SocialInfoMetabox.php:122
 msgid "URL média (%d)"
 msgid_plural "URLs médias (%d)"
 msgstr[0] "Media URL (%d)"
@@ -425,13 +448,13 @@ msgstr "Image Gallery"
 msgid "Aucune image dans la galerie pour cette publication."
 msgstr "No images in the gallery for this post."
 
-#: includes/Admin/Metaboxes/GalleryMetabox.php:55
 #. translators: %d: attachment ID
+#: includes/Admin/Metaboxes/GalleryMetabox.php:55
 msgid "Pièce jointe #%d"
 msgstr "Attachment #%d"
 
-#: includes/Admin/Metaboxes/GalleryMetabox.php:64
 #. translators: %d: number of images
+#: includes/Admin/Metaboxes/GalleryMetabox.php:64
 msgid "%d image"
 msgid_plural "%d images"
 msgstr[0] "%d image"
@@ -576,22 +599,14 @@ msgstr "Posts list navigation"
 msgid "Filtrer la liste"
 msgstr "Filter posts list"
 
-#: includes/CPT/SocialPostCPT.php:169
-msgid "Likes"
-msgstr "Likes"
-
 #: includes/Auth/MetaOAuth.php:121
 msgid "Invalid OAuth state. Please try again."
 msgstr "Invalid OAuth state. Please try again."
 
-#: includes/Auth/MetaOAuth.php:122
+#: includes/Auth/MetaOAuth.php:122 includes/Auth/MetaOAuth.php:140
 msgid "OAuth Error"
 msgstr "OAuth Error"
 
 #: includes/Auth/MetaOAuth.php:139
 msgid "Missing authorization code."
 msgstr "Missing authorization code."
-
-#: includes/Auth/MetaOAuth.php:140
-msgid "OAuth Error"
-msgstr "OAuth Error"
