@@ -51,9 +51,10 @@ class GalleryMetabox {
             }
 
             $full_url = wp_get_attachment_url($attachment_id);
+            /* translators: %d: attachment ID number */
             echo '<a href="' . esc_url((string) $full_url) . '" target="_blank" rel="noopener"'
                 . ' title="' . esc_attr(sprintf(__('Pièce jointe #%d', 'social-posts-sync'), $attachment_id)) . '">';
-            echo $thumb;
+            echo wp_kses_post($thumb);
             echo '</a>';
         }
         echo '</div>';
