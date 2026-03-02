@@ -74,6 +74,7 @@ class CronSync {
                         $log['success']++;
                     } catch (\Throwable $e) {
                         $log['errors']++;
+                        error_log('[SCPS] Sync error (facebook post, page ' . $page_id . '): ' . $e->getMessage());
                         unset($e);
                     }
                 }
@@ -82,6 +83,7 @@ class CronSync {
                 $log['sources'][$page_id] = count($posts);
             } catch (\Throwable $e) {
                 $log['errors']++;
+                error_log('[SCPS] Sync error (facebook page ' . $page_id . '): ' . $e->getMessage());
                 unset($e);
             }
         }
@@ -110,6 +112,7 @@ class CronSync {
                         $log['success']++;
                     } catch (\Throwable $e) {
                         $log['errors']++;
+                        error_log('[SCPS] Sync error (instagram post, account ' . $ig_id . '): ' . $e->getMessage());
                         unset($e);
                     }
                 }
@@ -118,6 +121,7 @@ class CronSync {
                 $log['sources'][$ig_id] = count($posts);
             } catch (\Throwable $e) {
                 $log['errors']++;
+                error_log('[SCPS] Sync error (instagram account ' . $ig_id . '): ' . $e->getMessage());
                 unset($e);
             }
         }

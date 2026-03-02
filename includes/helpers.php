@@ -68,23 +68,38 @@ function scps_log_sync(array $entry): void {
 }
 
 /**
- * Acquire the sync lock.
+ * Acquire the sync lock atomically.
+ *
+ * Uses add_option() which fails (returns false) if the option already exists,
+ * making the check-and-set operation atomic at the database level and avoiding
+ * the TOCTOU race condition of a separate get + update pair.
+ *
+ * Automatically breaks stale locks older than 10 minutes.
  *
  * @return bool True if the lock was acquired, false if already locked.
  */
 function scps_acquire_sync_lock(): bool {
-    if (get_option('scps_sync_running') === '1') {
-        return false;
+    // add_option() returns false if the key already exists — atomic
+    $acquired = add_option('scps_sync_lock', time(), '', false);
+    if ($acquired) {
+        return true;
     }
-    update_option('scps_sync_running', '1', false);
-    return true;
+
+    // Break stale locks older than 10 minutes to prevent permanent deadlocks
+    $lock_time = (int) get_option('scps_sync_lock', 0);
+    if ($lock_time && (time() - $lock_time) > 600) {
+        delete_option('scps_sync_lock');
+        return add_option('scps_sync_lock', time(), '', false);
+    }
+
+    return false;
 }
 
 /**
  * Release the sync lock.
  */
 function scps_release_sync_lock(): void {
-    update_option('scps_sync_running', '0', false);
+    delete_option('scps_sync_lock');
 }
 
 /**
@@ -93,5 +108,5 @@ function scps_release_sync_lock(): void {
  * @return bool True if running.
  */
 function scps_is_sync_running(): bool {
-    return get_option('scps_sync_running') === '1';
+    return (bool) get_option('scps_sync_lock', false);
 }

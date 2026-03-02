@@ -100,6 +100,15 @@ class MetaOAuth {
      * - Redirects back to the settings page.
      */
     public function handleCallback(): void {
+        // Capability check — defence-in-depth (also verified by the caller)
+        if (!current_user_can('manage_options')) {
+            wp_die(
+                esc_html__('Accès non autorisé.', 'social-posts-sync'),
+                '',
+                ['response' => 403]
+            );
+        }
+
         // CSRF protection: verify state nonce
         $state = sanitize_text_field(wp_unslash($_GET['state'] ?? ''));
         if (!wp_verify_nonce($state, 'scps_oauth_state')) {
@@ -206,6 +215,15 @@ class MetaOAuth {
         if (!$key) {
             return false;
         }
+
+        // Rate limiting: max 5 attempts per IP per 5 minutes
+        $ip            = sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'] ?? ''));
+        $transient_key = 'scps_licence_attempts_' . md5($ip);
+        $attempts      = (int) get_transient($transient_key);
+        if ($attempts >= 5) {
+            return false;
+        }
+        set_transient($transient_key, $attempts + 1, 5 * MINUTE_IN_SECONDS);
 
         $response = wp_remote_get(add_query_arg([
             'licence_key' => $key,
@@ -376,7 +394,7 @@ class MetaOAuth {
      *
      * @return string Base64-encoded ciphertext (iv:ciphertext).
      */
-    private function encrypt(string $value): string {
+    public function encrypt(string $value): string {
         if (empty($value)) {
             return '';
         }
@@ -400,7 +418,7 @@ class MetaOAuth {
      *
      * @return string|false Plain-text value, or false on failure.
      */
-    private function decrypt(string $encrypted): string|false {
+    public function decrypt(string $encrypted): string|false {
         if (empty($encrypted)) {
             return false;
         }

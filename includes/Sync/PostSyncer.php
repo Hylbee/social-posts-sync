@@ -124,6 +124,7 @@ class PostSyncer {
      * @return int|null Post ID if found, null otherwise.
      */
     private function findExistingPost(string $source_id): ?int {
+        $source_id = sanitize_text_field($source_id);
         if (!$source_id) {
             return null;
         }

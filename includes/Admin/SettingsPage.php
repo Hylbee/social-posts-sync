@@ -235,8 +235,8 @@ class SettingsPage {
         check_admin_referer('scps_save_advanced');
 
         $raw_slug = sanitize_title(wp_unslash($_POST['scps_cpt_slug'] ?? ''));
-        // Fallback to default if empty after sanitization
-        $slug = $raw_slug ?: 'social-posts';
+        // Fallback to default if empty or too short after sanitization (min 3 chars)
+        $slug = (strlen($raw_slug) >= 3) ? $raw_slug : 'social-posts';
 
         $old_slug = (string) get_option('scps_cpt_slug', 'social-posts');
         update_option('scps_cpt_slug', $slug);
@@ -419,6 +419,7 @@ class SettingsPage {
 
         if (!current_user_can('manage_options')) {
             wp_send_json_error();
+            return;
         }
 
         wp_send_json_success(['running' => scps_is_sync_running()]);
@@ -432,6 +433,7 @@ class SettingsPage {
 
         if (!current_user_can('manage_options')) {
             wp_send_json_error();
+            return;
         }
 
         scps_release_sync_lock();
@@ -472,11 +474,13 @@ class SettingsPage {
 
         if (!current_user_can('manage_options')) {
             wp_send_json_error(['message' => __('Accès non autorisé.', 'social-posts-sync')]);
+            return;
         }
 
         $token = $this->oauth->getAccessToken();
         if (!$token) {
             wp_send_json_error(['message' => __('Non connecté à Meta.', 'social-posts-sync')]);
+            return;
         }
 
         try {
@@ -528,6 +532,16 @@ class SettingsPage {
         // Détection automatique : @ ou non-numérique → Instagram, numérique → Facebook
         $clean    = ltrim($identifier, '@');
         $platform = ctype_digit($clean) ? 'facebook' : 'instagram';
+
+        // Pattern validation
+        if ($platform === 'facebook' && !preg_match('/^\d{1,20}$/', $clean)) {
+            wp_send_json_error(['message' => __('ID Facebook invalide (doit être numérique, max 20 chiffres).', 'social-posts-sync')]);
+            return;
+        }
+        if ($platform === 'instagram' && !preg_match('/^[a-zA-Z0-9_.]{1,30}$/', $clean)) {
+            wp_send_json_error(['message' => __('Nom d\'utilisateur Instagram invalide (lettres, chiffres, . et _ uniquement, max 30 caractères).', 'social-posts-sync')]);
+            return;
+        }
 
         try {
             $client = new MetaApiClient($token);
@@ -752,7 +766,7 @@ class SettingsPage {
             delete_option('scps_sync_log');
             delete_option('scps_max_posts');
             delete_option('scps_cron_interval');
-            delete_option('scps_sync_running');
+            delete_option('scps_sync_lock');
             delete_option('scps_cpt_slug');
         }
 

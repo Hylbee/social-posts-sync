@@ -14,6 +14,8 @@ namespace SocialPostsSync\Api;
 
 defined('ABSPATH') || exit;
 
+use SocialPostsSync\Auth\MetaOAuth;
+
 /**
  * Fetches and normalizes Facebook Page posts.
  */
@@ -54,12 +56,13 @@ class FacebookFeed {
         $data = $this->client->get('/me/accounts', ['fields' => 'id,name,access_token,picture{url}']);
         $pages = $data['data'] ?? [];
 
-        // Cache page tokens
+        // Cache page tokens — stored encrypted to protect sensitive credentials
+        $oauth         = new MetaOAuth();
         $stored_tokens = (array) get_option('scps_page_tokens', []);
         foreach ($pages as $page) {
             if (!empty($page['id']) && !empty($page['access_token'])) {
                 $this->page_tokens[$page['id']] = $page['access_token'];
-                $stored_tokens[$page['id']]      = $page['access_token'];
+                $stored_tokens[$page['id']]      = $oauth->encrypt($page['access_token']);
             }
         }
         update_option('scps_page_tokens', $stored_tokens);
@@ -79,10 +82,12 @@ class FacebookFeed {
         // Try in-memory cache first
         $token = $this->page_tokens[$pageId] ?? null;
 
-        // Then try WP option (persisted from previous getPages() call)
+        // Then try WP option (persisted from previous getPages() call) — decrypt on read
         if (!$token) {
+            $oauth         = new MetaOAuth();
             $stored_tokens = (array) get_option('scps_page_tokens', []);
-            $token         = (string) ($stored_tokens[$pageId] ?? '');
+            $encrypted     = (string) ($stored_tokens[$pageId] ?? '');
+            $token         = $encrypted ? ($oauth->decrypt($encrypted) ?: '') : '';
         }
 
         if ($token) {
@@ -96,8 +101,9 @@ class FacebookFeed {
                 if ((string) $page['id'] === $pageId && !empty($page['access_token'])) {
                     $token                              = $page['access_token'];
                     $this->page_tokens[$pageId]         = $token;
+                    $oauth                              = new MetaOAuth();
                     $stored_tokens                      = (array) get_option('scps_page_tokens', []);
-                    $stored_tokens[$pageId]             = $token;
+                    $stored_tokens[$pageId]             = $oauth->encrypt($token);
                     update_option('scps_page_tokens', $stored_tokens);
                     return new MetaApiClient($token);
                 }
