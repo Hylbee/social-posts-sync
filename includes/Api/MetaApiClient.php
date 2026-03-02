@@ -85,7 +85,7 @@ class MetaApiClient {
         if ($this->isBackingOff()) {
             $until = (int) get_option(self::BACKOFF_OPTION, 0);
             throw new MetaApiException(
-                sprintf('Rate limit active. Retry after %s.', date('Y-m-d H:i:s', $until)),
+                esc_html(sprintf('Rate limit active. Retry after %s.', gmdate('Y-m-d H:i:s', $until))),
                 429
             );
         }
@@ -105,7 +105,7 @@ class MetaApiClient {
 
         if (is_wp_error($response)) {
             throw new \RuntimeException(
-                'HTTP request failed: ' . $response->get_error_message()
+                esc_html('HTTP request failed: ' . $response->get_error_message())
             );
         }
 
@@ -166,7 +166,7 @@ class MetaApiClient {
             update_option(self::BACKOFF_OPTION, time() + $duration);
         }
 
-        throw new MetaApiException($message, $code, $type, $fbtrace_id);
+        throw new MetaApiException(esc_html($message), $code, esc_html($type), esc_html($fbtrace_id));
     }
 
     /**
