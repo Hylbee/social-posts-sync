@@ -58,7 +58,7 @@ class PostSyncer {
 
         if (is_wp_error($result)) {
             throw new \RuntimeException(
-                'Failed to save social post: ' . $result->get_error_message()
+                esc_html('Failed to save social post: ' . $result->get_error_message())
             );
         }
 
@@ -217,7 +217,7 @@ class PostSyncer {
             remove_filter('http_request_timeout', $timeout_cb, 99);
 
             if (is_wp_error($attachment_id)) {
-                error_log('[SCPS] media_sideload_image failed for ' . esc_url_raw($url) . ': ' . sanitize_text_field($attachment_id->get_error_message()));
+                // Media sideload failed — skip this URL silently in production
                 continue;
             }
 
@@ -344,6 +344,7 @@ class PostSyncer {
             /* translators: 1: Platform name (e.g. Facebook), 2: Publication date */
             $title = sprintf(__('Post %1$s du %2$s', 'social-posts-sync'), $platform, $date);
         } else {
+            /* translators: %s: Platform name (e.g. Facebook) */
             $title = sprintf(__('Post %s', 'social-posts-sync'), $platform);
         }
 
