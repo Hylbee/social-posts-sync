@@ -1,8 +1,13 @@
 # Social Posts Sync
 
-A WordPress plugin that fetches posts from **Facebook Pages** and **Instagram Business accounts** via the Meta Graph API and saves them as a Custom Post Type (CPT).
+Sync Facebook Pages and Instagram Business accounts to WordPress via the Meta Graph API.
 
 **Version:** 1.1.0 — **Requires:** WordPress 6.0+, PHP 8.0+
+
+**Stable Tag:** 1.1.0
+**Tested up to:** 6.7
+**License:** GPL-2.0-or-later
+**License URI:** https://www.gnu.org/licenses/gpl-2.0.html
 
 ---
 
