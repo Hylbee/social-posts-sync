@@ -13,6 +13,7 @@
  *  - ScpsAuthorAvatarTag → Image (avatar URL)
  *  - ScpsLikesCountTag  → Text / Number (likes count)
  *  - ScpsVideoUrlTag    → URL (video URL)
+ *  - ScpsGalleryTag    → Gallery (all post images)
  *
  * @package SocialPostsSync\Elementor
  */
@@ -30,6 +31,7 @@ use SocialPostsSync\Elementor\Tags\ScpsAuthorNameTag;
 use SocialPostsSync\Elementor\Tags\ScpsAuthorAvatarTag;
 use SocialPostsSync\Elementor\Tags\ScpsLikesCountTag;
 use SocialPostsSync\Elementor\Tags\ScpsVideoUrlTag;
+use SocialPostsSync\Elementor\Tags\ScpsGalleryTag;
 
 /**
  * Bootstraps all dynamic tag registrations.
@@ -59,6 +61,7 @@ class DynamicTags {
             ScpsAuthorAvatarTag::class,
             ScpsLikesCountTag::class,
             ScpsVideoUrlTag::class,
+            ScpsGalleryTag::class,
         ];
 
         foreach ($tags as $tag_class) {
