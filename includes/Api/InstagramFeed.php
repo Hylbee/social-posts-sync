@@ -68,7 +68,7 @@ class InstagramFeed {
         }
 
         throw new \RuntimeException(
-            __('Aucun compte Instagram Business lié à vos Pages Facebook. Le compte cible et le vôtre doivent être de type Business ou Creator.', 'social-posts-sync')
+            esc_html__('Aucun compte Instagram Business lié à vos Pages Facebook. Le compte cible et le vôtre doivent être de type Business ou Creator.', 'social-posts-sync')
         );
     }
 
@@ -91,11 +91,11 @@ class InstagramFeed {
         $discovery = $data['business_discovery'] ?? null;
         if (!$discovery) {
             throw new MetaApiException(
-                sprintf(
+                esc_html(sprintf(
                     /* translators: %s: Instagram username */
                     __('Compte @%s introuvable ou non accessible via Business Discovery. Assurez-vous qu\'il s\'agit d\'un compte Business ou Creator public.', 'social-posts-sync'),
                     $username
-                )
+                ))
             );
         }
 
@@ -278,7 +278,7 @@ class InstagramFeed {
                 'avatar'   => (string) ($data['profile_picture_url'] ?? ''),
             ];
         } catch (\Throwable $e) {
-            error_log('[SCPS InstagramFeed] Failed to fetch account info for account ' . $igAccountId . ': ' . $e->getMessage());
+            unset($e); // Silently fail — account info is non-critical, sync continues
             return ['name' => '', 'username' => '', 'avatar' => ''];
         }
     }
@@ -296,7 +296,7 @@ class InstagramFeed {
                 'fields' => self::CHILDREN_FIELDS,
             ]);
         } catch (\Throwable $e) {
-            error_log('[SCPS InstagramFeed] Failed to fetch carousel children for media ' . $mediaId . ': ' . $e->getMessage());
+            unset($e); // Silently fail — carousel children are non-critical
             return [];
         }
 
