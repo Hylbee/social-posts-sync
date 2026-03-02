@@ -46,13 +46,6 @@ spl_autoload_register(function (string $class): void {
 // Bootstrap
 add_action('plugins_loaded', function (): void {
 
-    // i18n
-    load_plugin_textdomain(
-        'social-posts-sync',
-        false,
-        dirname(SCPS_PLUGIN_BASENAME) . '/languages'
-    );
-
     // CPT
     add_action('init', function (): void {
         (new SocialPostsSync\CPT\SocialPostCPT())->register();
@@ -68,7 +61,7 @@ add_action('plugins_loaded', function (): void {
 
     // OAuth callback
     add_action('admin_init', function (): void {
-        if (isset($_GET['scps_oauth_callback']) && current_user_can('manage_options')) {
+        if (isset($_GET['scps_oauth_callback']) && current_user_can('manage_options')) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce verified inside handleCallback()
             (new SocialPostsSync\Auth\MetaOAuth())->handleCallback();
         }
     });
