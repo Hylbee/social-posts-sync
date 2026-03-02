@@ -103,7 +103,7 @@ class FacebookFeed {
                 }
             }
         } catch (\Throwable $e) {
-            error_log('[SCPS FacebookFeed] Failed to fetch page token for page ' . $pageId . ': ' . $e->getMessage());
+            unset($e); // Silently fall back to user token
         }
 
         return $this->client;
@@ -210,7 +210,7 @@ class FacebookFeed {
                 'avatar' => (string) ($data['picture']['data']['url'] ?? ''),
             ];
         } catch (\Throwable $e) {
-            error_log('[SCPS FacebookFeed] Failed to fetch page info for page ' . $pageId . ': ' . $e->getMessage());
+            unset($e); // Silently fail — page info is non-critical
             return ['name' => '', 'avatar' => ''];
         }
     }
