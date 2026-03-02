@@ -45,8 +45,11 @@ class ApiTab {
                         </th>
                         <td>
                             <input type="password" id="scps_licence_key" name="scps_licence_key"
-                                   value="" placeholder="<?php esc_attr_e('Laisser vide pour conserver l\'actuelle', 'social-posts-sync'); ?>"
-                                   class="regular-text" autocomplete="new-password">
+                                   value="<?php echo $licence_key ? '********************' : ''; ?>"
+                                   placeholder="<?php esc_attr_e('Laisser vide pour conserver l\'actuelle', 'social-posts-sync'); ?>"
+                                   class="regular-text" autocomplete="new-password"
+                                   onfocus="if(this.value==='********************')this.value='';"
+                                   onblur="if(this.value==='')this.value=<?php echo $licence_key ? '\'********************\'' : '\'\''; ?>;">
                             <?php if ($licence_key) : ?>
                                 <p class="description" style="color:#46b450;">
                                     <span class="dashicons dashicons-yes" style="vertical-align:middle;"></span>
