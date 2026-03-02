@@ -37,7 +37,7 @@
     }
 
     // Unlock button (shown when lock is stuck)
-    var $unlockBtn = $('<button type="button" class="button scps-unlock-btn">🔓 ' + escHtml(scpsAdmin.strings.unlock) + '</button>');
+    var $unlockBtn = $('<button type="button" class="button scps-unlock-btn">🔓 ' + escHtml(scpsAdmin.strings.unlock) + '</button>').hide();
     if ($syncBtn.length) {
         $syncBtn.after($unlockBtn);
     }
