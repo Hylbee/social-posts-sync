@@ -303,30 +303,45 @@ class FacebookFeed {
                 continue;
             }
 
-            // Image attachment
-            $src = $attachment['media']['image']['src'] ?? null;
-            if ($src) {
-                $image_urls[] = (string) $src;
-            }
-
             // Subattachments (albums, carousels)
+            // When subattachments exist, the parent attachment's image is just a
+            // duplicate of the first child — skip it and use only the children.
             $subattachments = $attachment['subattachments']['data'] ?? [];
-            foreach ($subattachments as $sub) {
-                $sub_type = strtolower((string) ($sub['media_type'] ?? ''));
-                if ($sub_type === 'video') {
-                    $sub_src = $sub['media']['source'] ?? null;
-                    if ($sub_src && !$video_url) {
-                        $video_url = (string) $sub_src;
+            if (!empty($subattachments)) {
+                foreach ($subattachments as $sub) {
+                    $sub_type = strtolower((string) ($sub['media_type'] ?? ''));
+                    if ($sub_type === 'video') {
+                        $sub_src = $sub['media']['source'] ?? null;
+                        if ($sub_src && !$video_url) {
+                            $video_url = (string) $sub_src;
+                        }
+                        continue;
                     }
-                    continue;
+                    $sub_src = $sub['media']['image']['src'] ?? null;
+                    if ($sub_src) {
+                        $image_urls[] = (string) $sub_src;
+                    }
                 }
-                $sub_src = $sub['media']['image']['src'] ?? null;
-                if ($sub_src) {
-                    $image_urls[] = (string) $sub_src;
+            } else {
+                // Single image attachment (no children)
+                $src = $attachment['media']['image']['src'] ?? null;
+                if ($src) {
+                    $image_urls[] = (string) $src;
                 }
             }
         }
 
-        return [array_unique($image_urls), $video_url];
+        // Deduplicate by base URL (without query-string) to handle Meta CDN session tokens
+        $seen_bases = [];
+        $unique_urls = [];
+        foreach ($image_urls as $url) {
+            $base = strtok($url, '?');
+            if (!isset($seen_bases[$base])) {
+                $seen_bases[$base] = true;
+                $unique_urls[] = $url;
+            }
+        }
+
+        return [$unique_urls, $video_url];
     }
 }
