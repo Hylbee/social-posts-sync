@@ -194,7 +194,7 @@ class SyncTab {
                                     foreach ($entry['sources'] as $src_id => $count) {
                                         $parts[] = esc_html($src_id) . ': ' . esc_html((string) $count);
                                     }
-                                    echo implode(', ', $parts);
+                                    echo implode(', ', $parts); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- each $parts entry is already esc_html'd above
                                     ?>
                                 <?php endif; ?>
                             </td>
@@ -220,7 +220,7 @@ class SyncTab {
             'post_type'      => \SocialPostsSync\CPT\SocialPostCPT::POST_TYPE,
             'post_status'    => 'publish',
             'posts_per_page' => -1,
-            'meta_query'     => [
+            'meta_query'     => [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- intentional, count per platform is admin-only and infrequent
                 'relation' => 'AND',
                 [
                     'key'   => \SocialPostsSync\CPT\SocialPostCPT::META_PLATFORM,
