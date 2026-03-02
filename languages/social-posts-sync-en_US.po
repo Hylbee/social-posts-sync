@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Social Posts Sync 1.1.0\n"
 "Report-Msgid-Bugs-To: https://github.com/Hylbee/social-posts-sync/issues\n"
 "POT-Creation-Date: 2026-03-02T00:00:00+00:00\n"
-"PO-Revision-Date: 2026-03-02 12:07+0100\n"
+"PO-Revision-Date: 2026-03-02 12:29+0100\n"
 "Last-Translator: Your Name <email@example.com>\n"
 "Language-Team: English (United States) <en@li.org>\n"
 "Language: en_US\n"
@@ -16,6 +16,10 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Poedit 3.5\n"
 "X-Domain: social-posts-sync\n"
+
+#: social-posts-sync.php:83
+msgid "Réglages"
+msgstr "Settings"
 
 #: includes/Admin/SettingsPage.php:64 includes/Admin/SettingsPage.php:65
 msgid "Social Posts Sync"

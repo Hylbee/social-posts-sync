@@ -32,6 +32,10 @@ msgstr ""
 msgid "Your Name"
 msgstr ""
 
+#: social-posts-sync.php:83
+msgid "Réglages"
+msgstr ""
+
 #: includes/Admin/SettingsPage.php:64
 #: includes/Admin/SettingsPage.php:65
 msgid "Social Posts Sync"

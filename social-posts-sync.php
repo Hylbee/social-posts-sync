@@ -75,6 +75,17 @@ add_action('plugins_loaded', function (): void {
     });
 });
 
+// Settings link on plugins page
+add_filter('plugin_action_links_' . SCPS_PLUGIN_BASENAME, function (array $links): array {
+    $settings_link = sprintf(
+        '<a href="%s">%s</a>',
+        esc_url(admin_url('options-general.php?page=social-posts-sync')),
+        __('Réglages', 'social-posts-sync')
+    );
+    array_unshift($links, $settings_link);
+    return $links;
+});
+
 // Activation / deactivation hooks (must run at file scope, before plugins_loaded)
 register_activation_hook(SCPS_PLUGIN_FILE, function (): void {
     SocialPostsSync\Cron\CronScheduler::activate();
