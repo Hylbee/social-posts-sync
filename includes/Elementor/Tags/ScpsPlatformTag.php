@@ -1,0 +1,46 @@
+<?php
+/**
+ * Elementor Dynamic Tag — Platform
+ *
+ * @package SocialPostsSync\Elementor\Tags
+ */
+
+declare(strict_types=1);
+
+namespace SocialPostsSync\Elementor\Tags;
+
+defined('ABSPATH') || exit;
+
+use SocialPostsSync\CPT\SocialPostCPT;
+
+/**
+ * Dynamic tag returning the platform name (Facebook / Instagram).
+ */
+class ScpsPlatformTag extends \Elementor\Core\DynamicTags\Tag {
+
+    public function get_name(): string {
+        return 'scps-platform';
+    }
+
+    public function get_title(): string {
+        return __('Plateforme sociale', 'social-posts-sync');
+    }
+
+    public function get_group(): string {
+        return \SocialPostsSync\Elementor\DynamicTags::GROUP;
+    }
+
+    public function get_categories(): array {
+        return [\Elementor\Modules\DynamicTags\Module::TEXT_CATEGORY];
+    }
+
+    public function render(): void {
+        $value = (string) get_post_meta(get_the_ID(), SocialPostCPT::META_PLATFORM, true);
+        $label = match (strtolower($value)) {
+            'facebook'  => 'Facebook',
+            'instagram' => 'Instagram',
+            default     => ucfirst($value),
+        };
+        echo esc_html($label);
+    }
+}

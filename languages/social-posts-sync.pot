@@ -1,0 +1,612 @@
+# Copyright (C) 2024 Social Posts Sync
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Social Posts Sync 1.0.0\n"
+"Report-Msgid-Bugs-To: https://github.com/Hylbee/social-posts-sync/issues\n"
+"POT-Creation-Date: 2024-01-01T00:00:00+00:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2024-01-01T00:00:00+00:00\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+"X-Generator: Social Posts Sync\n"
+"X-Domain: social-posts-sync\n"
+
+#. Plugin Name of the plugin
+msgid "Social Posts Sync"
+msgstr ""
+
+#. Plugin URI of the plugin
+msgid "https://github.com/Hylbee/social-posts-sync"
+msgstr ""
+
+#. Description of the plugin
+msgid "Fetches posts from Facebook Pages and Instagram Business accounts via the Meta Graph API and saves them as WordPress Custom Post Types."
+msgstr ""
+
+#. Author of the plugin
+msgid "Your Name"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:64
+#: includes/Admin/SettingsPage.php:65
+msgid "Social Posts Sync"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:92
+#: includes/Admin/SettingsPage.php:119
+#: includes/Admin/SettingsPage.php:184
+#: includes/Admin/SettingsPage.php:214
+#: includes/Admin/SettingsPage.php:233
+#: includes/Admin/SettingsPage.php:262
+#: includes/Admin/SettingsPage.php:291
+#: includes/Admin/SettingsPage.php:435
+#: includes/Admin/SettingsPage.php:464
+#: includes/Admin/SettingsPage.php:617
+msgid "Accès non autorisé."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:291
+msgid "Une synchronisation est déjà en cours. Veuillez patienter."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:318
+msgid "Synchronisation terminée."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:337
+msgid "Aucun token d'accès disponible. Reconnectez-vous à Meta."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:428
+msgid "Verrou libéré."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:454
+msgid "Timestamps réinitialisés. La prochaine sync récupèrera tous les posts."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:469
+msgid "Non connecté à Meta."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:503
+msgid "Paramètres enregistrés."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:508
+msgid "Connexion à Meta réussie !"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:513
+msgid "Déconnecté de Meta."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:521
+#. translators: %s: OAuth error message
+msgid "Erreur OAuth : %s"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:529
+msgid "Votre token Meta expire bientôt. Reconnectez-vous pour éviter toute interruption."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:549
+msgid "Configuration API"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:550
+msgid "Sources"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:551
+msgid "Synchronisation"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:552
+msgid "Avancé"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:672
+#. translators: %d: number of deleted posts
+msgid "%d publication supprimée."
+msgid_plural "%d publications supprimées."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/Admin/Tabs/ApiTab.php:32
+msgid "Identifiants de l'application Meta"
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:34
+msgid "Créez une application sur developers.facebook.com et renseignez vos identifiants ci-dessous."
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:44
+msgid "App ID"
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:54
+msgid "App Secret"
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:58
+msgid "Laisser vide pour conserver l'actuel"
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:61
+msgid "Stocké de façon chiffrée (AES-256-CBC)."
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:67
+msgid "Enregistrer les identifiants"
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:72
+msgid "Connexion Meta"
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:77
+msgid "Connecté"
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:86
+#. translators: %s: Token expiry date
+msgid "Token valide jusqu'au : %s"
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:97
+msgid "Déconnecter"
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:103
+msgid "Non connecté"
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:110
+msgid "Se connecter avec Facebook"
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:117
+#. translators: %s: Redirect URI
+msgid "URI de redirection à enregistrer dans votre App Meta : %s"
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:124
+msgid "Veuillez d'abord enregistrer votre App ID et App Secret."
+msgstr ""
+
+#: includes/Admin/Tabs/SourcesTab.php:32
+msgid "Sources à synchroniser"
+msgstr ""
+
+#: includes/Admin/Tabs/SourcesTab.php:37
+msgid "Vous devez être connecté à Meta pour gérer les sources."
+msgstr ""
+
+#: includes/Admin/Tabs/SourcesTab.php:39
+msgid "Configurer la connexion"
+msgstr ""
+
+#: includes/Admin/Tabs/SourcesTab.php:46
+msgid "Actualiser les sources disponibles"
+msgstr ""
+
+#: includes/Admin/Tabs/SourcesTab.php:50
+msgid "Chargement…"
+msgstr ""
+
+#: includes/Admin/Tabs/SourcesTab.php:62
+msgid "Enregistrer les sources"
+msgstr ""
+
+#: includes/Admin/Tabs/SourcesTab.php:80
+msgid "Aucune source configurée. Cliquez sur « Actualiser les sources disponibles » pour charger vos pages Facebook."
+msgstr ""
+
+#: includes/Admin/Tabs/SourcesTab.php:86
+msgid "Pages Facebook"
+msgstr ""
+
+#: includes/Admin/Tabs/SourcesTab.php:109
+msgid "Comptes Instagram"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:24
+msgid "Toutes les heures"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:25
+msgid "Toutes les 6 heures"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:26
+msgid "Toutes les 12 heures"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:27
+msgid "Tous les jours"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:31
+msgid "Synchronisation manuelle"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:36
+msgid "Synchroniser maintenant"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:42
+msgid "Dernière synchronisation par source"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:46
+msgid "Source"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:47
+msgid "Plateforme"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:48
+msgid "Dernière synchro"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:49
+msgid "Publications"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:59
+#: includes/Admin/Tabs/SyncTab.php:83
+msgid "Jamais"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:106
+msgid "Paramètres de récupération"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:115
+msgid "Posts max par source"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:122
+msgid "Nombre maximum de publications récupérées par source à chaque synchronisation (1–100). L'API Meta renvoie au maximum 100 par page."
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:128
+msgid "Enregistrer"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:133
+msgid "Planification automatique (WP-Cron)"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:142
+msgid "Fréquence"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:155
+msgid "Prochaine exécution"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:160
+msgid "Non planifiée"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:166
+msgid "Enregistrer la planification"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:172
+msgid "Journal de synchronisation (10 dernières entrées)"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:177
+msgid "Date"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:178
+msgid "Succès"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:179
+msgid "Erreurs"
+msgstr ""
+
+#: includes/Admin/Tabs/SyncTab.php:180
+msgid "Sources"
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:19
+msgid "Paramètres avancés"
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:20
+msgid "Ces actions sont irréversibles. Utilisez-les avec précaution."
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:24
+msgid "Permaliens"
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:28
+msgid "Attention :"
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:29
+msgid "Modifier le slug de base change l'URL de toutes vos publications sociales. Les anciennes URLs cesseront de fonctionner et vos liens Elementor pourraient se briser. Videz le cache de votre site après la modification."
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:40
+msgid "Slug de base des publications"
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:51
+msgid "Par défaut : social-posts. N'utilisez que des lettres minuscules, chiffres et tirets."
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:57
+msgid "Enregistrer le slug"
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:64
+msgid "Zone de danger"
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:69
+msgid "Re-synchronisation complète"
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:70
+msgid "Supprime les dates de dernière synchro. La prochaine synchronisation récupèrera tous les posts depuis le début, sans toucher aux publications existantes."
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:75
+msgid "Réinitialiser les timestamps"
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:82
+msgid "Supprimer toutes les publications synchronisées"
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:83
+msgid "Supprime définitivement tous les posts de type \"social_post\" et leurs médias associés. Les réglages et la connexion Meta sont conservés."
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:88
+msgid "Supprimer les publications"
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:95
+msgid "Réinitialisation complète du plugin"
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:96
+msgid "Supprime toutes les publications, tous les médias importés, la connexion Meta, les réglages et les timestamps. Remet le plugin à zéro."
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:101
+msgid "Tout réinitialiser"
+msgstr ""
+
+#: includes/Admin/Metaboxes/SocialInfoMetabox.php:27
+msgid "Informations sociales"
+msgstr ""
+
+#: includes/Admin/Metaboxes/SocialInfoMetabox.php:62
+msgid "Plateforme"
+msgstr ""
+
+#: includes/Admin/Metaboxes/SocialInfoMetabox.php:68
+msgid "Publié le"
+msgstr ""
+
+#: includes/Admin/Metaboxes/SocialInfoMetabox.php:74
+msgid "Auteur"
+msgstr ""
+
+#: includes/Admin/Metaboxes/SocialInfoMetabox.php:79
+msgid "Likes"
+msgstr ""
+
+#: includes/Admin/Metaboxes/SocialInfoMetabox.php:84
+msgid "Lien original"
+msgstr ""
+
+#: includes/Admin/Metaboxes/SocialInfoMetabox.php:87
+msgid "Voir le post original"
+msgstr ""
+
+#: includes/Admin/Metaboxes/SocialInfoMetabox.php:105
+msgid "Vidéo"
+msgstr ""
+
+#: includes/Admin/Metaboxes/SocialInfoMetabox.php:122
+#. translators: %d: number of media URLs
+msgid "URL média (%d)"
+msgid_plural "URLs médias (%d)"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/Admin/Metaboxes/GalleryMetabox.php:26
+msgid "Galerie d'images"
+msgstr ""
+
+#: includes/Admin/Metaboxes/GalleryMetabox.php:39
+msgid "Aucune image dans la galerie pour cette publication."
+msgstr ""
+
+#: includes/Admin/Metaboxes/GalleryMetabox.php:55
+#. translators: %d: attachment ID
+msgid "Pièce jointe #%d"
+msgstr ""
+
+#: includes/Admin/Metaboxes/GalleryMetabox.php:64
+#. translators: %d: number of images
+msgid "%d image"
+msgid_plural "%d images"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/CPT/SocialPostCPT.php:66
+msgctxt "taxonomy general name"
+msgid "Plateformes sociales"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:67
+msgctxt "taxonomy singular name"
+msgid "Plateforme sociale"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:68
+msgid "Rechercher une plateforme"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:69
+msgid "Toutes les plateformes"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:70
+msgid "Modifier la plateforme"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:71
+msgid "Mettre à jour"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:72
+msgid "Ajouter une plateforme"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:73
+msgid "Nom de la plateforme"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:74
+msgid "Plateformes"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:106
+msgctxt "post type general name"
+msgid "Publications sociales"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:107
+msgctxt "post type singular name"
+msgid "Publication sociale"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:108
+msgctxt "admin menu"
+msgid "Publications sociales"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:109
+msgctxt "add new on toolbar"
+msgid "Publication sociale"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:110
+msgctxt "social post"
+msgid "Ajouter"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:111
+msgid "Ajouter une publication"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:112
+msgid "Nouvelle publication"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:113
+msgid "Modifier la publication"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:114
+msgid "Voir la publication"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:115
+msgid "Toutes les publications"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:116
+msgid "Rechercher des publications"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:117
+msgid "Publications parentes :"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:118
+msgid "Aucune publication trouvée."
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:119
+msgid "Aucune publication dans la corbeille."
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:120
+msgid "Image à la une"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:121
+msgid "Définir l'image à la une"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:122
+msgid "Supprimer l'image à la une"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:123
+msgid "Utiliser comme image à la une"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:124
+msgid "Archives des publications"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:125
+msgid "Insérer dans la publication"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:126
+msgid "Téléversé dans cette publication"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:127
+msgid "Liste des publications"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:128
+msgid "Navigation de la liste"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:129
+msgid "Filtrer la liste"
+msgstr ""
+
+#: includes/CPT/SocialPostCPT.php:169
+msgid "Likes"
+msgstr ""
+
+#: includes/Auth/MetaOAuth.php:121
+msgid "Invalid OAuth state. Please try again."
+msgstr ""
+
+#: includes/Auth/MetaOAuth.php:122
+msgid "OAuth Error"
+msgstr ""
+
+#: includes/Auth/MetaOAuth.php:139
+msgid "Missing authorization code."
+msgstr ""
+
+#: includes/Auth/MetaOAuth.php:140
+msgid "OAuth Error"
+msgstr ""
