@@ -103,7 +103,7 @@ class SettingsPage {
             $this->oauth->storeAppSecret($app_secret);
         }
 
-        wp_redirect(add_query_arg(
+        wp_safe_redirect(add_query_arg(
             ['page' => 'social-posts-sync', 'tab' => 'api', 'scps_saved' => '1'],
             admin_url('options-general.php')
         ));
@@ -122,7 +122,7 @@ class SettingsPage {
 
         check_admin_referer('scps_save_sources');
 
-        $raw_json = wp_unslash($_POST['scps_sources_json'] ?? '');
+        $raw_json = sanitize_textarea_field(wp_unslash($_POST['scps_sources_json'] ?? ''));
         $decoded  = json_decode($raw_json, true);
 
         if (!is_array($decoded)) {
@@ -149,7 +149,7 @@ class SettingsPage {
 
         update_option('scps_enabled_sources', $enabled_sources);
 
-        wp_redirect(add_query_arg(
+        wp_safe_redirect(add_query_arg(
             ['page' => 'social-posts-sync', 'tab' => 'sources', 'scps_saved' => '1'],
             admin_url('options-general.php')
         ));
@@ -202,7 +202,7 @@ class SettingsPage {
         update_option('scps_cron_interval', $interval);
         wp_schedule_event(time(), $interval, 'scps_sync_posts');
 
-        wp_redirect(add_query_arg(
+        wp_safe_redirect(add_query_arg(
             ['page' => 'social-posts-sync', 'tab' => 'sync', 'scps_saved' => '1'],
             admin_url('options-general.php')
         ));
@@ -220,7 +220,7 @@ class SettingsPage {
         check_admin_referer('scps_disconnect');
         $this->oauth->disconnect();
 
-        wp_redirect(add_query_arg(
+        wp_safe_redirect(add_query_arg(
             ['page' => 'social-posts-sync', 'tab' => 'api', 'scps_disconnected' => '1'],
             admin_url('options-general.php')
         ));
@@ -256,7 +256,7 @@ class SettingsPage {
         }
         update_option('scps_sideload_timeout', $sideload_timeout);
 
-        wp_redirect(add_query_arg(
+        wp_safe_redirect(add_query_arg(
             ['page' => 'social-posts-sync', 'tab' => 'advanced', 'scps_saved' => '1'],
             admin_url('options-general.php')
         ));
@@ -278,7 +278,7 @@ class SettingsPage {
 
         update_option('scps_max_posts', $max_posts);
 
-        wp_redirect(add_query_arg(
+        wp_safe_redirect(add_query_arg(
             ['page' => 'social-posts-sync', 'tab' => 'sync', 'scps_saved' => '1'],
             admin_url('options-general.php')
         ));
@@ -342,7 +342,7 @@ class SettingsPage {
 
         $token = $this->oauth->getAccessToken();
         if (!$token) {
-            throw new \RuntimeException(__('Aucun token d\'accès disponible. Reconnectez-vous à Meta.', 'social-posts-sync'));
+            throw new \RuntimeException(esc_html__('Aucun token d\'accès disponible. Reconnectez-vous à Meta.', 'social-posts-sync'));
         }
 
         $client  = new MetaApiClient($token);
@@ -366,7 +366,6 @@ class SettingsPage {
                         $log['success']++;
                     } catch (\Throwable $e) {
                         $log['errors']++;
-                        error_log('[SCPS] Sync error for FB post: ' . $e->getMessage());
                     }
                 }
 
@@ -374,7 +373,6 @@ class SettingsPage {
                 $log['sources'][$page_id] = count($posts);
             } catch (\Throwable $e) {
                 $log['errors']++;
-                error_log('[SCPS] Error fetching FB page ' . $page_id . ': ' . $e->getMessage());
             }
         }
 
@@ -402,7 +400,6 @@ class SettingsPage {
                         $log['success']++;
                     } catch (\Throwable $e) {
                         $log['errors']++;
-                        error_log('[SCPS] Sync error for IG post: ' . $e->getMessage());
                     }
                 }
 
@@ -410,7 +407,6 @@ class SettingsPage {
                 $log['sources'][$ig_id] = count($posts);
             } catch (\Throwable $e) {
                 $log['errors']++;
-                error_log('[SCPS] Error fetching IG account ' . $ig_id . ': ' . $e->getMessage());
             }
         }
 
@@ -579,6 +575,7 @@ class SettingsPage {
             return;
         }
 
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only GET flags set by wp_safe_redirect after nonce-verified form processing
         if (isset($_GET['scps_saved'])) {
             echo '<div class="notice notice-success is-dismissible"><p>';
             esc_html_e('Paramètres enregistrés.', 'social-posts-sync');
@@ -599,10 +596,12 @@ class SettingsPage {
 
         if (isset($_GET['scps_error'])) {
             $error = sanitize_text_field(wp_unslash($_GET['scps_error']));
+            /* translators: %s: OAuth error message returned by Meta */
             echo '<div class="notice notice-error is-dismissible"><p>';
             echo esc_html(sprintf(__('Erreur OAuth : %s', 'social-posts-sync'), $error));
             echo '</p></div>';
         }
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
         // Token expiry warning
         if ($this->oauth->isConnected() && $this->oauth->isTokenExpiring()) {
@@ -624,7 +623,7 @@ class SettingsPage {
             return;
         }
 
-        $active_tab = sanitize_text_field(wp_unslash($_GET['tab'] ?? 'api'));
+        $active_tab = sanitize_text_field(wp_unslash($_GET['tab'] ?? 'api')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only tab switcher, no data mutation
         $tabs = [
             'api'      => __('Configuration API', 'social-posts-sync'),
             'sources'  => __('Sources', 'social-posts-sync'),
