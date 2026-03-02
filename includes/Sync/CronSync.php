@@ -26,7 +26,6 @@ class CronSync {
      */
     public function run(): void {
         if (!scps_acquire_sync_lock()) {
-            error_log('[SCPS] Sync skipped — another sync is already in progress.');
             return;
         }
 
@@ -75,7 +74,7 @@ class CronSync {
                         $log['success']++;
                     } catch (\Throwable $e) {
                         $log['errors']++;
-                        error_log('[SCPS] Sync error for FB post: ' . $e->getMessage());
+                        unset($e);
                     }
                 }
 
@@ -83,7 +82,7 @@ class CronSync {
                 $log['sources'][$page_id] = count($posts);
             } catch (\Throwable $e) {
                 $log['errors']++;
-                error_log('[SCPS] Error fetching FB page ' . $page_id . ': ' . $e->getMessage());
+                unset($e);
             }
         }
 
@@ -111,7 +110,7 @@ class CronSync {
                         $log['success']++;
                     } catch (\Throwable $e) {
                         $log['errors']++;
-                        error_log('[SCPS] Sync error for IG post: ' . $e->getMessage());
+                        unset($e);
                     }
                 }
 
@@ -119,7 +118,7 @@ class CronSync {
                 $log['sources'][$ig_id] = count($posts);
             } catch (\Throwable $e) {
                 $log['errors']++;
-                error_log('[SCPS] Error fetching IG account ' . $ig_id . ': ' . $e->getMessage());
+                unset($e);
             }
         }
 
