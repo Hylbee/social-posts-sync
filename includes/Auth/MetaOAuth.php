@@ -127,7 +127,7 @@ class MetaOAuth {
         // Handle user-denied authorization
         if (isset($_GET['error'])) {
             $error_reason = sanitize_text_field(wp_unslash($_GET['error_description'] ?? $_GET['error']));
-            wp_redirect(add_query_arg(
+            wp_safe_redirect(add_query_arg(
                 ['page' => 'social-posts-sync', 'scps_error' => urlencode($error_reason)],
                 admin_url('options-general.php')
             ));
@@ -146,7 +146,7 @@ class MetaOAuth {
         // Exchange code for short-lived token
         $short_lived = $this->exchangeCodeForToken($code);
         if (!$short_lived) {
-            wp_redirect(add_query_arg(
+            wp_safe_redirect(add_query_arg(
                 ['page' => 'social-posts-sync', 'scps_error' => urlencode('Token exchange failed.')],
                 admin_url('options-general.php')
             ));
@@ -156,7 +156,7 @@ class MetaOAuth {
         // Exchange short-lived token for long-lived token
         $long_lived = $this->exchangeForLongLivedToken($short_lived);
         if (!$long_lived) {
-            wp_redirect(add_query_arg(
+            wp_safe_redirect(add_query_arg(
                 ['page' => 'social-posts-sync', 'scps_error' => urlencode('Long-lived token exchange failed.')],
                 admin_url('options-general.php')
             ));
@@ -167,7 +167,7 @@ class MetaOAuth {
         $this->storeAccessToken($long_lived['token'], $long_lived['expires_in']);
         $this->fetchAndStoreAccountName($long_lived['token']);
 
-        wp_redirect(add_query_arg(
+        wp_safe_redirect(add_query_arg(
             ['page' => 'social-posts-sync', 'scps_connected' => '1'],
             admin_url('options-general.php')
         ));
@@ -196,16 +196,12 @@ class MetaOAuth {
         ]);
 
         if (is_wp_error($response)) {
-            error_log('[SCPS OAuth] Code exchange failed: ' . $response->get_error_message());
             return null;
         }
 
         $body = json_decode(wp_remote_retrieve_body($response), true);
 
         if (empty($body['access_token'])) {
-            $error_code = isset($body['error']['code']) ? (int) $body['error']['code'] : 0;
-            $error_msg  = isset($body['error']['message']) ? sanitize_text_field($body['error']['message']) : 'unknown error';
-            error_log('[SCPS OAuth] Code exchange error (code ' . $error_code . '): ' . $error_msg);
             return null;
         }
 
@@ -228,7 +224,6 @@ class MetaOAuth {
         ], self::TOKEN_URL));
 
         if (is_wp_error($response)) {
-            error_log('[SCPS OAuth] Long-lived exchange failed: ' . $response->get_error_message());
             return null;
         }
 
@@ -450,7 +445,6 @@ class MetaOAuth {
         $encrypted = openssl_encrypt($value, self::CIPHER, $key, OPENSSL_RAW_DATA, $iv);
         if (false === $encrypted) {
             // Fallback: store as-is if encryption fails (should not happen)
-            error_log('[SCPS] openssl_encrypt failed.');
             return base64_encode($value);
         }
 
