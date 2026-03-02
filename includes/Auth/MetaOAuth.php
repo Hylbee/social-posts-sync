@@ -1,10 +1,17 @@
 <?php
 /**
- * Meta OAuth 2.0 Handler
+ * Meta OAuth 2.0 Handler — Proxy Mode
  *
- * Manages the OAuth 2.0 authorization code flow for the Meta (Facebook/Instagram)
- * Graph API. Handles token storage (AES-256-CBC encrypted), long-lived token
- * exchange, and token expiry detection.
+ * Delegates the OAuth 2.0 flow to a centralized proxy server
+ * (https://social-proxy.hylbee.pro). The proxy handles the Meta App
+ * credentials; WordPress only stores the resulting long-lived access token
+ * and the user's licence key.
+ *
+ * Token storage:
+ *  - scps_meta_access_token      → AES-256-CBC encrypted access token
+ *  - scps_meta_token_expires_at  → Unix timestamp of token expiry
+ *  - scps_licence_key            → AES-256-CBC encrypted licence key
+ *  - scps_meta_account_name      → Connected account name (display only)
  *
  * @package SocialPostsSync\Auth
  */
@@ -16,43 +23,19 @@ namespace SocialPostsSync\Auth;
 defined('ABSPATH') || exit;
 
 /**
- * Handles Meta OAuth 2.0 flow and token lifecycle management.
- *
- * Token storage:
- *  - scps_meta_access_token      → AES-256-CBC encrypted access token
- *  - scps_meta_token_expires_at  → Unix timestamp of token expiry
- *  - scps_meta_app_id            → Meta App ID (plain text, not secret)
- *  - scps_meta_app_secret        → AES-256-CBC encrypted App Secret
- *  - scps_meta_account_name      → Connected account name (display only)
+ * Handles Meta OAuth 2.0 flow via the Social Posts Sync proxy server.
  */
 class MetaOAuth {
 
     /**
-     * Meta OAuth 2.0 dialog URL.
+     * Proxy base URL.
      */
-    private const DIALOG_URL = 'https://www.facebook.com/v21.0/dialog/oauth';
-
-    /**
-     * Meta token exchange endpoint.
-     */
-    private const TOKEN_URL = 'https://graph.facebook.com/v21.0/oauth/access_token';
+    private const PROXY_BASE = 'https://social-proxy.hylbee.pro';
 
     /**
      * Meta API endpoint to verify token and get user info.
      */
     private const ME_URL = 'https://graph.facebook.com/v21.0/me';
-
-    /**
-     * OAuth scopes required by the plugin.
-     */
-    private const SCOPES = [
-        'public_profile',
-        'pages_show_list',
-        'pages_read_engagement',
-        'pages_read_user_content',
-        'instagram_basic',
-        'instagram_content_publish',
-    ];
 
     /**
      * Encryption cipher used for storing sensitive values.
@@ -69,27 +52,28 @@ class MetaOAuth {
     // -------------------------------------------------------------------------
 
     /**
-     * Generate the Meta OAuth authorization URL.
+     * Generate the proxy OAuth authorization URL.
      *
-     * The state parameter is a WordPress nonce bound to the current user to
-     * prevent CSRF attacks.
+     * The state nonce is embedded in the `back` redirect URL so it survives
+     * the proxy round-trip and can be verified on callback.
      *
      * @return string Authorization URL to redirect the user to.
      */
     public function getAuthorizationUrl(): string {
         $state = wp_create_nonce('scps_oauth_state');
 
+        $back = add_query_arg([
+            'scps_oauth_callback' => '1',
+            'state'               => $state,
+        ], admin_url('options-general.php?page=social-posts-sync'));
+
         return add_query_arg([
-            'client_id'     => $this->getAppId(),
-            'redirect_uri'  => urlencode($this->getRedirectUri()),
-            'scope'         => implode(',', self::SCOPES),
-            'response_type' => 'code',
-            'state'         => $state,
-        ], self::DIALOG_URL);
+            'back' => urlencode($back),
+        ], self::PROXY_BASE . '/auth/facebook');
     }
 
     /**
-     * Build the OAuth redirect URI (must be registered in your Meta App dashboard).
+     * Build the OAuth redirect URI (the URL the proxy will redirect back to).
      *
      * @return string Redirect URI.
      */
@@ -105,12 +89,14 @@ class MetaOAuth {
     // -------------------------------------------------------------------------
 
     /**
-     * Handle the OAuth callback from Meta.
+     * Handle the OAuth callback from the proxy.
      *
-     * - Validates the state nonce.
-     * - Exchanges the authorization code for a short-lived token.
-     * - Exchanges the short-lived token for a long-lived token.
-     * - Stores the long-lived token.
+     * The proxy redirects back with:
+     *   ?facebook_access_token=EAAxx...&expires_in=5183944&state=<nonce>
+     *
+     * - Validates the state nonce (CSRF protection).
+     * - Reads the long-lived access token directly from query string.
+     * - Stores the token and fetches the account name.
      * - Redirects back to the settings page.
      */
     public function handleCallback(): void {
@@ -124,7 +110,7 @@ class MetaOAuth {
             );
         }
 
-        // Handle user-denied authorization
+        // Handle errors returned by the proxy
         if (isset($_GET['error'])) {
             $error_reason = sanitize_text_field(wp_unslash($_GET['error_description'] ?? $_GET['error']));
             wp_safe_redirect(add_query_arg(
@@ -134,38 +120,20 @@ class MetaOAuth {
             exit;
         }
 
-        $code = sanitize_text_field(wp_unslash($_GET['code'] ?? ''));
-        if (!$code) {
+        $token = sanitize_text_field(wp_unslash($_GET['facebook_access_token'] ?? ''));
+        if (!$token) {
             wp_die(
-                esc_html__('Missing authorization code.', 'social-posts-sync'),
+                esc_html__('Missing access token in callback.', 'social-posts-sync'),
                 esc_html__('OAuth Error', 'social-posts-sync'),
                 ['response' => 400]
             );
         }
 
-        // Exchange code for short-lived token
-        $short_lived = $this->exchangeCodeForToken($code);
-        if (!$short_lived) {
-            wp_safe_redirect(add_query_arg(
-                ['page' => 'social-posts-sync', 'scps_error' => urlencode('Token exchange failed.')],
-                admin_url('options-general.php')
-            ));
-            exit;
-        }
-
-        // Exchange short-lived token for long-lived token
-        $long_lived = $this->exchangeForLongLivedToken($short_lived);
-        if (!$long_lived) {
-            wp_safe_redirect(add_query_arg(
-                ['page' => 'social-posts-sync', 'scps_error' => urlencode('Long-lived token exchange failed.')],
-                admin_url('options-general.php')
-            ));
-            exit;
-        }
+        $expires_in = absint($_GET['expires_in'] ?? (60 * DAY_IN_SECONDS));
 
         // Store token and fetch account name
-        $this->storeAccessToken($long_lived['token'], $long_lived['expires_in']);
-        $this->fetchAndStoreAccountName($long_lived['token']);
+        $this->storeAccessToken($token, $expires_in);
+        $this->fetchAndStoreAccountName($token);
 
         wp_safe_redirect(add_query_arg(
             ['page' => 'social-posts-sync', 'scps_connected' => '1'],
@@ -175,90 +143,83 @@ class MetaOAuth {
     }
 
     // -------------------------------------------------------------------------
-    // Token Exchange
+    // Token Refresh
     // -------------------------------------------------------------------------
 
     /**
-     * Exchange an authorization code for a short-lived access token.
+     * Refresh the current access token via the proxy.
      *
-     * @param string $code Authorization code from Meta.
-     *
-     * @return string|null Short-lived token, or null on failure.
-     */
-    private function exchangeCodeForToken(string $code): ?string {
-        $response = wp_remote_post(self::TOKEN_URL, [
-            'body' => [
-                'client_id'     => $this->getAppId(),
-                'client_secret' => $this->getAppSecret(),
-                'redirect_uri'  => $this->getRedirectUri(),
-                'code'          => $code,
-            ],
-        ]);
-
-        if (is_wp_error($response)) {
-            return null;
-        }
-
-        $body = json_decode(wp_remote_retrieve_body($response), true);
-
-        if (empty($body['access_token'])) {
-            return null;
-        }
-
-        return $body['access_token'];
-    }
-
-    /**
-     * Exchange a short-lived token for a long-lived token (~60 days).
-     *
-     * @param string $short_token Short-lived access token.
-     *
-     * @return array|null Array with 'token' and 'expires_in', or null on failure.
-     */
-    private function exchangeForLongLivedToken(string $short_token): ?array {
-        $response = wp_remote_get(add_query_arg([
-            'grant_type'        => 'fb_exchange_token',
-            'client_id'         => $this->getAppId(),
-            'client_secret'     => $this->getAppSecret(),
-            'fb_exchange_token' => $short_token,
-        ], self::TOKEN_URL));
-
-        if (is_wp_error($response)) {
-            return null;
-        }
-
-        $body = json_decode(wp_remote_retrieve_body($response), true);
-
-        if (empty($body['access_token'])) {
-            return null;
-        }
-
-        return [
-            'token'      => $body['access_token'],
-            'expires_in' => (int) ($body['expires_in'] ?? (60 * DAY_IN_SECONDS)),
-        ];
-    }
-
-    /**
-     * Attempt to refresh the current long-lived token.
-     *
-     * Meta long-lived tokens can be refreshed by exchanging them again.
+     * Calls GET /auth/facebook/refresh?access_token=TOKEN&back=URL
+     * with the X-Licence-Key header.
+     * Expects JSON: { "facebook_access_token": "...", "expires_in": ... }
      *
      * @return bool True on success, false on failure.
      */
     public function refreshToken(): bool {
-        $current_token = $this->getAccessToken();
-        if (!$current_token) {
+        $licence_key  = $this->getLicenceKey();
+        $access_token = $this->getAccessToken();
+
+        if (!$licence_key || !$access_token) {
             return false;
         }
 
-        $refreshed = $this->exchangeForLongLivedToken($current_token);
-        if (!$refreshed) {
+        $back = add_query_arg(
+            ['scps_oauth_callback' => '1'],
+            admin_url('options-general.php?page=social-posts-sync')
+        );
+
+        $response = wp_remote_get(add_query_arg([
+            'access_token' => $access_token,
+            'back'         => urlencode($back),
+        ], self::PROXY_BASE . '/auth/facebook/refresh'), [
+            'headers' => [
+                'X-Licence-Key' => $licence_key,
+            ],
+        ]);
+
+        if (is_wp_error($response)) {
             return false;
         }
 
-        $this->storeAccessToken($refreshed['token'], $refreshed['expires_in']);
+        $body = json_decode(wp_remote_retrieve_body($response), true);
+
+        if (empty($body['facebook_access_token'])) {
+            return false;
+        }
+
+        $expires_in = absint($body['expires_in'] ?? (60 * DAY_IN_SECONDS));
+        $this->storeAccessToken($body['facebook_access_token'], $expires_in);
+
         return true;
+    }
+
+    /**
+     * Validate the licence key against the proxy.
+     *
+     * Calls GET /licence/validate?licence_key=KEY&domain=DOMAIN
+     *
+     * @param string $key Licence key to validate.
+     *
+     * @return bool True if valid, false otherwise.
+     */
+    public function validateLicenceKey(string $key): bool {
+        if (!$key) {
+            return false;
+        }
+
+        $response = wp_remote_get(add_query_arg([
+            'licence_key' => $key,
+            'domain'      => wp_parse_url(home_url(), PHP_URL_HOST),
+        ], self::PROXY_BASE . '/licence/validate'));
+
+        if (is_wp_error($response)) {
+            return false;
+        }
+
+        $http_code = wp_remote_retrieve_response_code($response);
+        $body      = json_decode(wp_remote_retrieve_body($response), true);
+
+        return $http_code === 200 && !empty($body['success']);
     }
 
     // -------------------------------------------------------------------------
@@ -291,43 +252,25 @@ class MetaOAuth {
     }
 
     /**
-     * Store the Meta App Secret, encrypted.
+     * Store the licence key, encrypted.
      *
-     * @param string $secret Plain-text App Secret.
+     * @param string $key Plain-text licence key.
      */
-    public function storeAppSecret(string $secret): void {
-        update_option('scps_meta_app_secret', $this->encrypt($secret));
+    public function storeLicenceKey(string $key): void {
+        update_option('scps_licence_key', $this->encrypt($key));
     }
 
     /**
-     * Retrieve and decrypt the stored App Secret.
+     * Retrieve and decrypt the stored licence key.
      *
-     * @return string Plain-text App Secret.
+     * @return string Plain-text licence key.
      */
-    public function getAppSecret(): string {
-        $encrypted = get_option('scps_meta_app_secret', '');
+    public function getLicenceKey(): string {
+        $encrypted = get_option('scps_licence_key', '');
         if (!$encrypted) {
             return '';
         }
         return $this->decrypt($encrypted) ?: '';
-    }
-
-    /**
-     * Store the Meta App ID (not a secret, stored plain).
-     *
-     * @param string $app_id App ID.
-     */
-    public function storeAppId(string $app_id): void {
-        update_option('scps_meta_app_id', sanitize_text_field($app_id));
-    }
-
-    /**
-     * Get the stored Meta App ID.
-     *
-     * @return string App ID.
-     */
-    public function getAppId(): string {
-        return (string) get_option('scps_meta_app_id', '');
     }
 
     /**
@@ -444,7 +387,6 @@ class MetaOAuth {
 
         $encrypted = openssl_encrypt($value, self::CIPHER, $key, OPENSSL_RAW_DATA, $iv);
         if (false === $encrypted) {
-            // Fallback: store as-is if encryption fails (should not happen)
             return base64_encode($value);
         }
 

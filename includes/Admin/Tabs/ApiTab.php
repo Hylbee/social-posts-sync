@@ -22,16 +22,16 @@ class ApiTab {
     }
 
     public function render(): void {
-        $app_id       = esc_attr((string) get_option('scps_meta_app_id', ''));
+        $licence_key  = $this->oauth->getLicenceKey();
         $is_connected = $this->oauth->isConnected();
         $account_name = $this->oauth->getAccountName();
         $expires_date = $this->oauth->getTokenExpiryDate();
         $auth_url     = $this->oauth->getAuthorizationUrl();
         ?>
         <div class="scps-card">
-            <h2><?php esc_html_e('Identifiants de l\'application Meta', 'social-posts-sync'); ?></h2>
+            <h2><?php esc_html_e('Licence Social Posts Sync', 'social-posts-sync'); ?></h2>
             <p class="description">
-                <?php esc_html_e('Créez une application sur developers.facebook.com et renseignez vos identifiants ci-dessous.', 'social-posts-sync'); ?>
+                <?php esc_html_e('Renseignez votre clé de licence pour activer la connexion Facebook via notre serveur OAuth.', 'social-posts-sync'); ?>
             </p>
 
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
@@ -41,35 +41,33 @@ class ApiTab {
                 <table class="form-table" role="presentation">
                     <tr>
                         <th scope="row">
-                            <label for="scps_meta_app_id"><?php esc_html_e('App ID', 'social-posts-sync'); ?></label>
+                            <label for="scps_licence_key"><?php esc_html_e('Clé de licence', 'social-posts-sync'); ?></label>
                         </th>
                         <td>
-                            <input type="text" id="scps_meta_app_id" name="scps_meta_app_id"
-                                   value="<?php echo esc_attr($app_id); ?>"
-                                   class="regular-text" autocomplete="off">
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">
-                            <label for="scps_meta_app_secret"><?php esc_html_e('App Secret', 'social-posts-sync'); ?></label>
-                        </th>
-                        <td>
-                            <input type="password" id="scps_meta_app_secret" name="scps_meta_app_secret"
-                                   value="" placeholder="<?php esc_attr_e('Laisser vide pour conserver l\'actuel', 'social-posts-sync'); ?>"
+                            <input type="password" id="scps_licence_key" name="scps_licence_key"
+                                   value="" placeholder="<?php esc_attr_e('Laisser vide pour conserver l\'actuelle', 'social-posts-sync'); ?>"
                                    class="regular-text" autocomplete="new-password">
-                            <p class="description">
-                                <?php esc_html_e('Stocké de façon chiffrée (AES-256-CBC).', 'social-posts-sync'); ?>
-                            </p>
+                            <?php if ($licence_key) : ?>
+                                <p class="description" style="color:#46b450;">
+                                    <span class="dashicons dashicons-yes" style="vertical-align:middle;"></span>
+                                    <?php esc_html_e('Clé de licence enregistrée et valide.', 'social-posts-sync'); ?>
+                                </p>
+                            <?php else : ?>
+                                <p class="description" style="color:#dc3232;">
+                                    <span class="dashicons dashicons-warning" style="vertical-align:middle;"></span>
+                                    <?php esc_html_e('Aucune clé de licence enregistrée.', 'social-posts-sync'); ?>
+                                </p>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 </table>
 
-                <?php submit_button(__('Enregistrer les identifiants', 'social-posts-sync')); ?>
+                <?php submit_button(__('Enregistrer la licence', 'social-posts-sync')); ?>
             </form>
         </div>
 
         <div class="scps-card scps-card--spaced">
-            <h2><?php esc_html_e('Connexion Meta', 'social-posts-sync'); ?></h2>
+            <h2><?php esc_html_e('Connexion Facebook', 'social-posts-sync'); ?></h2>
 
             <?php if ($is_connected) : ?>
                 <div class="scps-connection-status scps-connected">
@@ -103,25 +101,16 @@ class ApiTab {
                     <strong><?php esc_html_e('Non connecté', 'social-posts-sync'); ?></strong>
                 </div>
 
-                <?php if ($app_id && get_option('scps_meta_app_secret', '')) : ?>
+                <?php if ($licence_key) : ?>
                     <p class="scps-connect-action">
                         <a href="<?php echo esc_url($auth_url); ?>" class="button button-primary">
                             <span class="dashicons dashicons-facebook scps-btn-icon"></span>
                             <?php esc_html_e('Se connecter avec Facebook', 'social-posts-sync'); ?>
                         </a>
                     </p>
-                    <p class="description">
-                        <?php
-                        printf(
-                            /* translators: %s: Redirect URI */
-                            esc_html__('URI de redirection à enregistrer dans votre App Meta : %s', 'social-posts-sync'),
-                            '<code>' . esc_html($this->oauth->getRedirectUri()) . '</code>'
-                        );
-                        ?>
-                    </p>
                 <?php else : ?>
                     <p class="description">
-                        <?php esc_html_e('Veuillez d\'abord enregistrer votre App ID et App Secret.', 'social-posts-sync'); ?>
+                        <?php esc_html_e('Veuillez d\'abord enregistrer votre clé de licence.', 'social-posts-sync'); ?>
                     </p>
                 <?php endif; ?>
             <?php endif; ?>

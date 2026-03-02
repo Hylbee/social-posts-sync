@@ -74,11 +74,7 @@ class SettingsPage {
      * Register plugin settings with the Settings API.
      */
     public function registerSettings(): void {
-        register_setting('scps_api_settings', 'scps_meta_app_id', [
-            'type'              => 'string',
-            'sanitize_callback' => 'sanitize_text_field',
-        ]);
-        // App secret is stored separately (encrypted), not via Settings API
+        // Licence key and access token are stored encrypted, not via Settings API
     }
 
     // -------------------------------------------------------------------------
@@ -95,18 +91,19 @@ class SettingsPage {
 
         check_admin_referer('scps_save_api_settings');
 
-        $app_id = sanitize_text_field(wp_unslash($_POST['scps_meta_app_id'] ?? ''));
-        $this->oauth->storeAppId($app_id);
-
-        $app_secret = sanitize_text_field(wp_unslash($_POST['scps_meta_app_secret'] ?? ''));
-        if ($app_secret) {
-            $this->oauth->storeAppSecret($app_secret);
+        $licence_key = sanitize_text_field(wp_unslash($_POST['scps_licence_key'] ?? ''));
+        if ($licence_key) {
+            if ($this->oauth->validateLicenceKey($licence_key)) {
+                $this->oauth->storeLicenceKey($licence_key);
+                $redirect_args = ['page' => 'social-posts-sync', 'tab' => 'api', 'scps_licence' => 'valid'];
+            } else {
+                $redirect_args = ['page' => 'social-posts-sync', 'tab' => 'api', 'scps_licence' => 'invalid'];
+            }
+        } else {
+            $redirect_args = ['page' => 'social-posts-sync', 'tab' => 'api', 'scps_saved' => '1'];
         }
 
-        wp_safe_redirect(add_query_arg(
-            ['page' => 'social-posts-sync', 'tab' => 'api', 'scps_saved' => '1'],
-            admin_url('options-general.php')
-        ));
+        wp_safe_redirect(add_query_arg($redirect_args, admin_url('options-general.php')));
         exit;
     }
 
@@ -582,6 +579,18 @@ class SettingsPage {
             echo '</p></div>';
         }
 
+        if (isset($_GET['scps_licence'])) {
+            if ($_GET['scps_licence'] === 'valid') {
+                echo '<div class="notice notice-success is-dismissible"><p>';
+                esc_html_e('Clé de licence valide et enregistrée.', 'social-posts-sync');
+                echo '</p></div>';
+            } else {
+                echo '<div class="notice notice-error is-dismissible"><p>';
+                esc_html_e('Clé de licence invalide. Vérifiez votre licence et réessayez.', 'social-posts-sync');
+                echo '</p></div>';
+            }
+        }
+
         if (isset($_GET['scps_connected'])) {
             echo '<div class="notice notice-success is-dismissible"><p>';
             esc_html_e('Connexion à Meta réussie !', 'social-posts-sync');
@@ -738,8 +747,7 @@ class SettingsPage {
         // Full reset: also wipe settings and connection
         if ($scope === 'all') {
             $this->oauth->disconnect();
-            delete_option('scps_meta_app_id');
-            delete_option('scps_meta_app_secret');
+            delete_option('scps_licence_key');
             delete_option('scps_enabled_sources');
             delete_option('scps_sync_log');
             delete_option('scps_max_posts');
