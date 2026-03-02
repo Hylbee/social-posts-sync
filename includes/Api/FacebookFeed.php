@@ -226,9 +226,21 @@ class FacebookFeed {
     private function normalize(array $raw, array $page_info): array {
         [$media_urls, $video_url] = $this->extractMedia($raw);
 
-        // Always include full_picture as thumbnail (works for both images and video posts)
-        if (!empty($raw['full_picture']) && !in_array($raw['full_picture'], $media_urls, true)) {
-            array_unshift($media_urls, $raw['full_picture']);
+        // Always include full_picture as thumbnail (works for both images and video posts).
+        // Compare without query-string parameters to avoid duplicates caused by differing
+        // session tokens in Meta CDN URLs (e.g. ?oh=...&oe=...).
+        if (!empty($raw['full_picture'])) {
+            $full_pic_base = strtok($raw['full_picture'], '?');
+            $already_present = false;
+            foreach ($media_urls as $existing_url) {
+                if (strtok($existing_url, '?') === $full_pic_base) {
+                    $already_present = true;
+                    break;
+                }
+            }
+            if (!$already_present) {
+                array_unshift($media_urls, $raw['full_picture']);
+            }
         }
 
         $published_at = '';

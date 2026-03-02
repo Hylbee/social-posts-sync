@@ -78,8 +78,9 @@ class PostSyncer {
             // First image → featured image
             set_post_thumbnail($post_id, $attachment_ids[0]);
 
-            // All images → gallery stored as comma-separated IDs (standard WP gallery format)
-            update_post_meta($post_id, SocialPostCPT::META_GALLERY_IDS, implode(',', $attachment_ids));
+            // Remaining images → gallery (exclude the featured image to avoid duplication)
+            $gallery_ids = count($attachment_ids) > 1 ? array_slice($attachment_ids, 1) : [];
+            update_post_meta($post_id, SocialPostCPT::META_GALLERY_IDS, implode(',', $gallery_ids));
         }
 
         return $post_id;
