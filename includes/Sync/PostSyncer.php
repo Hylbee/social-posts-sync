@@ -33,21 +33,8 @@ class PostSyncer {
      * @throws \RuntimeException If the post could not be created or updated.
      */
     public function sync(array $normalized_post): int {
-        $post_id = $this->findExistingPost($normalized_post['source_id']);
-
-        [$title, $body] = $this->splitTitleAndBody($normalized_post);
-        $post_date   = $this->normalizeDate($normalized_post['published_at'] ?? '');
-        $post_status = 'publish';
-
-        $post_data = [
-            'post_type'     => SocialPostCPT::POST_TYPE,
-            'post_title'    => $title,
-            'post_name'     => sanitize_title(remove_accents($this->stripUnicode($title))),
-            'post_content'  => wp_kses_post($body),
-            'post_status'   => $post_status,
-            'post_date'     => $post_date,
-            'post_date_gmt' => get_gmt_from_date($post_date),
-        ];
+        $post_id   = $this->findExistingPost($normalized_post['source_id']);
+        $post_data = $this->buildPostData($normalized_post);
 
         if ($post_id) {
             $post_data['ID'] = $post_id;
@@ -64,26 +51,58 @@ class PostSyncer {
 
         $post_id = (int) $result;
 
-        // Store all meta fields
         $this->saveMeta($post_id, $normalized_post);
-
-        // Assign platform taxonomy term
         $this->assignPlatformTerm($post_id, $normalized_post['platform'] ?? '');
+        $this->handleMedia($post_id, $normalized_post);
 
-        // Sideload media — must run after post exists so attachments get a parent
+        return $post_id;
+    }
+
+    /**
+     * Build the wp_insert_post / wp_update_post data array from a normalized post.
+     *
+     * @param array $normalized_post Normalized post data.
+     *
+     * @return array Post data array (without 'ID').
+     */
+    private function buildPostData(array $normalized_post): array {
+        [$title, $body] = $this->splitTitleAndBody($normalized_post);
+        $post_date = $this->normalizeDate($normalized_post['published_at'] ?? '');
+
+        return [
+            'post_type'     => SocialPostCPT::POST_TYPE,
+            'post_title'    => $title,
+            'post_name'     => sanitize_title(remove_accents($this->stripUnicode($title))),
+            'post_content'  => wp_kses_post($body),
+            'post_status'   => 'publish',
+            'post_date'     => $post_date,
+            'post_date_gmt' => get_gmt_from_date($post_date),
+        ];
+    }
+
+    /**
+     * Sideload media for a post and set featured image + gallery meta.
+     *
+     * Must be called after the post exists in the database so attachments
+     * can be parented to it.
+     *
+     * @param int   $post_id         Post ID.
+     * @param array $normalized_post Normalized post data.
+     */
+    private function handleMedia(int $post_id, array $normalized_post): void {
         $attachment_ids = $this->sideloadMedia($post_id, $normalized_post['media_urls'] ?? []);
         update_post_meta($post_id, SocialPostCPT::META_MEDIA_IDS, wp_json_encode($attachment_ids));
 
-        if (!empty($attachment_ids)) {
-            // First image → featured image
-            set_post_thumbnail($post_id, $attachment_ids[0]);
-
-            // Remaining images → gallery (exclude the featured image to avoid duplication)
-            $gallery_ids = count($attachment_ids) > 1 ? array_slice($attachment_ids, 1) : [];
-            update_post_meta($post_id, SocialPostCPT::META_GALLERY_IDS, implode(',', $gallery_ids));
+        if (empty($attachment_ids)) {
+            return;
         }
 
-        return $post_id;
+        // First image → featured image
+        set_post_thumbnail($post_id, $attachment_ids[0]);
+
+        // Remaining images → gallery (exclude the featured image to avoid duplication)
+        $gallery_ids = count($attachment_ids) > 1 ? array_slice($attachment_ids, 1) : [];
+        update_post_meta($post_id, SocialPostCPT::META_GALLERY_IDS, implode(',', $gallery_ids));
     }
 
     /**
