@@ -17,7 +17,7 @@ defined('ABSPATH') || exit;
 /**
  * Fetches and normalizes Instagram Business account media.
  */
-class InstagramFeed {
+class InstagramFeed implements FeedInterface {
 
     /**
      * Fields to request for each Instagram media object.

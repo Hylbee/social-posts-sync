@@ -20,7 +20,7 @@ use SocialPostsSync\Auth\TokenStorage;
 /**
  * Fetches and normalizes Facebook Page posts.
  */
-class FacebookFeed {
+class FacebookFeed implements FeedInterface {
 
     /**
      * Fields requested for each Facebook post.
