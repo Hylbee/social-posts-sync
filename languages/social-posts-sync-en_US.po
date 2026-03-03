@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Social Posts Sync 1.3.0\n"
 "Report-Msgid-Bugs-To: https://github.com/Hylbee/social-posts-sync/issues\n"
 "POT-Creation-Date: 2026-03-03T00:00:00+00:00\n"
-"PO-Revision-Date: 2026-03-03 00:00+0000\n"
+"PO-Revision-Date: 2026-03-03 15:44+0100\n"
 "Last-Translator: Your Name <email@example.com>\n"
 "Language-Team: English (United States) <en@li.org>\n"
 "Language: en_US\n"
@@ -21,24 +21,17 @@ msgstr ""
 msgid "Réglages"
 msgstr "Settings"
 
-#: includes/Admin/SettingsPage.php:64
-#: includes/Admin/SettingsPage.php:65
-#: includes/Admin/SettingsPage.php:392
+#: includes/Admin/SettingsPage.php:64 includes/Admin/SettingsPage.php:65
+#: includes/Admin/SettingsPage.php:392 includes/Elementor/DynamicTags.php:53
 msgid "Social Posts Sync"
 msgstr "Social Posts Sync"
 
-#: includes/Admin/SettingsPage.php:88
-#: includes/Admin/SettingsPage.php:116
-#: includes/Admin/SettingsPage.php:160
-#: includes/Admin/SettingsPage.php:192
-#: includes/Admin/SettingsPage.php:211
-#: includes/Admin/SettingsPage.php:229
-#: includes/Admin/SettingsPage.php:268
-#: includes/Admin/AjaxHandlers.php:58
-#: includes/Admin/AjaxHandlers.php:131
-#: includes/Admin/AjaxHandlers.php:161
-#: includes/Admin/AjaxHandlers.php:198
-#: includes/Admin/AjaxHandlers.php:265
+#: includes/Admin/SettingsPage.php:88 includes/Admin/SettingsPage.php:116
+#: includes/Admin/SettingsPage.php:160 includes/Admin/SettingsPage.php:192
+#: includes/Admin/SettingsPage.php:211 includes/Admin/SettingsPage.php:229
+#: includes/Admin/SettingsPage.php:268 includes/Admin/AjaxHandlers.php:58
+#: includes/Admin/AjaxHandlers.php:131 includes/Admin/AjaxHandlers.php:161
+#: includes/Admin/AjaxHandlers.php:198 includes/Admin/AjaxHandlers.php:265
 msgid "Accès non autorisé."
 msgstr "Unauthorized access."
 
@@ -50,8 +43,7 @@ msgstr "A sync is already running. Please wait."
 msgid "Aucun token d'accès disponible. Reconnectez-vous à Meta."
 msgstr "No access token available. Please reconnect to Meta."
 
-#: includes/Admin/AjaxHandlers.php:90
-#: includes/Admin/AssetLoader.php:67
+#: includes/Admin/AjaxHandlers.php:90 includes/Admin/AssetLoader.php:67
 msgid "Synchronisation terminée."
 msgstr "Sync complete."
 
@@ -63,8 +55,7 @@ msgstr "Lock released."
 msgid "Timestamps réinitialisés. La prochaine sync récupèrera tous les posts."
 msgstr "Timestamps reset. The next sync will fetch all posts."
 
-#: includes/Admin/AjaxHandlers.php:167
-#: includes/Admin/AjaxHandlers.php:204
+#: includes/Admin/AjaxHandlers.php:167 includes/Admin/AjaxHandlers.php:204
 msgid "Non connecté à Meta."
 msgstr "Not connected to Meta."
 
@@ -132,8 +123,7 @@ msgstr "The Social Posts Sync proxy server is unreachable. Automatic sync and to
 msgid "Configuration API"
 msgstr "API Configuration"
 
-#: includes/Admin/SettingsPage.php:380
-#: includes/Admin/Tabs/SyncTab.php:180
+#: includes/Admin/SettingsPage.php:380 includes/Admin/Tabs/SyncTab.php:180
 msgid "Sources"
 msgstr "Sources"
 
@@ -325,13 +315,11 @@ msgstr "Instagram Accounts"
 msgid "Toutes les heures"
 msgstr "Every hour"
 
-#: includes/Admin/Tabs/SyncTab.php:25
-#: includes/Cron/CronScheduler.php
+#: includes/Admin/Tabs/SyncTab.php:25 includes/Cron/CronScheduler.php
 msgid "Toutes les 6 heures"
 msgstr "Every 6 hours"
 
-#: includes/Admin/Tabs/SyncTab.php:26
-#: includes/Cron/CronScheduler.php
+#: includes/Admin/Tabs/SyncTab.php:26 includes/Cron/CronScheduler.php
 msgid "Toutes les 12 heures"
 msgstr "Every 12 hours"
 
@@ -368,8 +356,7 @@ msgstr "Last sync"
 msgid "Publications"
 msgstr "Posts"
 
-#: includes/Admin/Tabs/SyncTab.php:59
-#: includes/Admin/Tabs/SyncTab.php:83
+#: includes/Admin/Tabs/SyncTab.php:59 includes/Admin/Tabs/SyncTab.php:83
 msgid "Jamais"
 msgstr "Never"
 
@@ -716,8 +703,7 @@ msgstr "Filter posts list"
 msgid "Invalid OAuth state. Please try again."
 msgstr "Invalid OAuth state. Please try again."
 
-#: includes/Auth/MetaOAuth.php:123
-#: includes/Auth/MetaOAuth.php:141
+#: includes/Auth/MetaOAuth.php:123 includes/Auth/MetaOAuth.php:141
 msgid "OAuth Error"
 msgstr "OAuth Error"
 
@@ -725,19 +711,15 @@ msgstr "OAuth Error"
 msgid "Missing access token in callback."
 msgstr "Missing access token in callback."
 
-#: includes/Api/InstagramFeed.php
 #. translators: %s: Instagram username
+#: includes/Api/InstagramFeed.php
 msgid "Aucun compte Instagram Business lié à @%s."
 msgstr "No Instagram Business account linked to @%s."
 
-#: includes/Api/InstagramFeed.php
 #. translators: %s: Instagram username
+#: includes/Api/InstagramFeed.php
 msgid "Compte @%s introuvable ou non accessible."
 msgstr "Account @%s not found or not accessible."
-
-#: includes/Elementor/DynamicTags.php
-msgid "Social Posts Sync"
-msgstr "Social Posts Sync"
 
 #: includes/Elementor/Tags/ScpsAuthorAvatarTag.php
 msgid "Avatar de la page / compte"

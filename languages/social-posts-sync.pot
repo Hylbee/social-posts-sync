@@ -39,6 +39,7 @@ msgstr ""
 #: includes/Admin/SettingsPage.php:64
 #: includes/Admin/SettingsPage.php:65
 #: includes/Admin/SettingsPage.php:392
+#: includes/Elementor/DynamicTags.php:53
 msgid "Social Posts Sync"
 msgstr ""
 
@@ -765,10 +766,6 @@ msgstr ""
 #: includes/Api/InstagramFeed.php
 #. translators: %s: Instagram username
 msgid "Compte @%s introuvable ou non accessible."
-msgstr ""
-
-#: includes/Elementor/DynamicTags.php
-msgid "Social Posts Sync"
 msgstr ""
 
 #: includes/Elementor/Tags/ScpsAuthorAvatarTag.php
