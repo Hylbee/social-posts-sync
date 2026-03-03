@@ -2,13 +2,13 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Social Posts Sync 1.1.0\n"
+"Project-Id-Version: Social Posts Sync 1.2.2\n"
 "Report-Msgid-Bugs-To: https://github.com/Hylbee/social-posts-sync/issues\n"
-"POT-Creation-Date: 2026-03-02T00:00:00+00:00\n"
+"POT-Creation-Date: 2026-03-03T00:00:00+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2026-03-02T00:00:00+00:00\n"
+"PO-Revision-Date: 2026-03-03T00:00:00+00:00\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Team Name <team@example.com>\n"
 "Language: \n"
@@ -25,163 +25,257 @@ msgid "https://github.com/Hylbee/social-posts-sync"
 msgstr ""
 
 #. Description of the plugin
-msgid "Fetches posts from Facebook Pages and Instagram Business accounts via the Meta Graph API and saves them as WordPress Custom Post Types."
+msgid "Fetches posts from your social media platforms and save them as custom WordPress post types."
 msgstr ""
 
 #. Author of the plugin
-msgid "Your Name"
+msgid "Hylbee"
 msgstr ""
 
-#: social-posts-sync.php:83
+#: social-posts-sync.php:96
 msgid "Réglages"
 msgstr ""
 
 #: includes/Admin/SettingsPage.php:64
 #: includes/Admin/SettingsPage.php:65
+#: includes/Admin/SettingsPage.php:392
 msgid "Social Posts Sync"
 msgstr ""
 
-#: includes/Admin/SettingsPage.php:92
-#: includes/Admin/SettingsPage.php:119
-#: includes/Admin/SettingsPage.php:184
-#: includes/Admin/SettingsPage.php:214
-#: includes/Admin/SettingsPage.php:233
-#: includes/Admin/SettingsPage.php:262
-#: includes/Admin/SettingsPage.php:291
-#: includes/Admin/SettingsPage.php:435
-#: includes/Admin/SettingsPage.php:464
-#: includes/Admin/SettingsPage.php:617
+#: includes/Admin/SettingsPage.php:88
+#: includes/Admin/SettingsPage.php:116
+#: includes/Admin/SettingsPage.php:160
+#: includes/Admin/SettingsPage.php:192
+#: includes/Admin/SettingsPage.php:211
+#: includes/Admin/SettingsPage.php:229
+#: includes/Admin/SettingsPage.php:268
 msgid "Accès non autorisé."
 msgstr ""
 
-#: includes/Admin/SettingsPage.php:291
-msgid "Une synchronisation est déjà en cours. Veuillez patienter."
-msgstr ""
-
-#: includes/Admin/SettingsPage.php:318
-msgid "Synchronisation terminée."
-msgstr ""
-
-#: includes/Admin/SettingsPage.php:337
-msgid "Aucun token d'accès disponible. Reconnectez-vous à Meta."
-msgstr ""
-
-#: includes/Admin/SettingsPage.php:428
-msgid "Verrou libéré."
-msgstr ""
-
-#: includes/Admin/SettingsPage.php:454
-msgid "Timestamps réinitialisés. La prochaine sync récupèrera tous les posts."
-msgstr ""
-
-#: includes/Admin/SettingsPage.php:469
-msgid "Non connecté à Meta."
-msgstr ""
-
-#: includes/Admin/SettingsPage.php:503
+#: includes/Admin/SettingsPage.php:301
 msgid "Paramètres enregistrés."
 msgstr ""
 
-#: includes/Admin/SettingsPage.php:508
+#: includes/Admin/SettingsPage.php:308
+msgid "Clé de licence valide et enregistrée."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:312
+msgid "Clé de licence invalide. Vérifiez votre licence et réessayez."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:319
 msgid "Connexion à Meta réussie !"
 msgstr ""
 
-#: includes/Admin/SettingsPage.php:513
+#: includes/Admin/SettingsPage.php:325
 msgid "Déconnecté de Meta."
 msgstr ""
 
-#: includes/Admin/SettingsPage.php:521
-#. translators: %s: OAuth error message
+#: includes/Admin/SettingsPage.php:331
+msgid "Licence déconnectée avec succès."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:337
+msgid "La clé de licence a été supprimée localement, mais la révocation sur le serveur a échoué."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:345
+#. translators: %s: OAuth error message returned by Meta
 msgid "Erreur OAuth : %s"
 msgstr ""
 
-#: includes/Admin/SettingsPage.php:529
+#: includes/Admin/SettingsPage.php:353
 msgid "Votre token Meta expire bientôt. Reconnectez-vous pour éviter toute interruption."
 msgstr ""
 
-#: includes/Admin/SettingsPage.php:549
+#: includes/Admin/SettingsPage.php:360
+msgid "Le serveur proxy Social Posts Sync est inaccessible. La synchronisation automatique et le renouvellement du token risquent d'échouer."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:379
 msgid "Configuration API"
 msgstr ""
 
-#: includes/Admin/SettingsPage.php:550
+#: includes/Admin/SettingsPage.php:380
 msgid "Sources"
 msgstr ""
 
-#: includes/Admin/SettingsPage.php:551
+#: includes/Admin/SettingsPage.php:381
 msgid "Synchronisation"
 msgstr ""
 
-#: includes/Admin/SettingsPage.php:552
+#: includes/Admin/SettingsPage.php:382
 msgid "Avancé"
 msgstr ""
 
-#: includes/Admin/SettingsPage.php:672
+#: includes/Admin/AjaxHandlers.php:58
+#: includes/Admin/AjaxHandlers.php:131
+#: includes/Admin/AjaxHandlers.php:161
+#: includes/Admin/AjaxHandlers.php:198
+#: includes/Admin/AjaxHandlers.php:265
+msgid "Accès non autorisé."
+msgstr ""
+
+#: includes/Admin/AjaxHandlers.php:64
+msgid "Une synchronisation est déjà en cours. Veuillez patienter."
+msgstr ""
+
+#: includes/Admin/AjaxHandlers.php:73
+msgid "Aucun token d'accès disponible. Reconnectez-vous à Meta."
+msgstr ""
+
+#: includes/Admin/AjaxHandlers.php:90
+msgid "Synchronisation terminée."
+msgstr ""
+
+#: includes/Admin/AjaxHandlers.php:121
+msgid "Verrou libéré."
+msgstr ""
+
+#: includes/Admin/AjaxHandlers.php:147
+msgid "Timestamps réinitialisés. La prochaine sync récupèrera tous les posts."
+msgstr ""
+
+#: includes/Admin/AjaxHandlers.php:167
+#: includes/Admin/AjaxHandlers.php:204
+msgid "Non connecté à Meta."
+msgstr ""
+
+#: includes/Admin/AjaxHandlers.php:210
+msgid "Identifiant vide."
+msgstr ""
+
+#: includes/Admin/AjaxHandlers.php:219
+msgid "ID Facebook invalide (doit être numérique, max 20 chiffres)."
+msgstr ""
+
+#: includes/Admin/AjaxHandlers.php:223
+msgid "Nom d'utilisateur Instagram invalide (lettres, chiffres, . et _ uniquement, max 30 caractères)."
+msgstr ""
+
+#: includes/Admin/AjaxHandlers.php:322
 #. translators: %d: number of deleted posts
 msgid "%d publication supprimée."
 msgid_plural "%d publications supprimées."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/Admin/Tabs/ApiTab.php:32
-msgid "Identifiants de l'application Meta"
+#: includes/Admin/AssetLoader.php:66
+msgid "Synchronisation en cours…"
 msgstr ""
 
-#: includes/Admin/Tabs/ApiTab.php:34
-msgid "Créez une application sur developers.facebook.com et renseignez vos identifiants ci-dessous."
+#: includes/Admin/AssetLoader.php:67
+msgid "Synchronisation terminée."
 msgstr ""
 
-#: includes/Admin/Tabs/ApiTab.php:44
-msgid "App ID"
+#: includes/Admin/AssetLoader.php:68
+msgid "Erreur lors de la synchronisation."
 msgstr ""
 
-#: includes/Admin/Tabs/ApiTab.php:54
-msgid "App Secret"
+#: includes/Admin/AssetLoader.php:69
+msgid "Êtes-vous sûr(e) ?"
 msgstr ""
 
-#: includes/Admin/Tabs/ApiTab.php:58
-msgid "Laisser vide pour conserver l'actuel"
+#: includes/Admin/AssetLoader.php:70
+msgid "Déverrouiller"
 msgstr ""
 
-#: includes/Admin/Tabs/ApiTab.php:61
-msgid "Stocké de façon chiffrée (AES-256-CBC)."
+#: includes/Admin/AssetLoader.php:71
+msgid "Verrou libéré. Vous pouvez relancer la synchronisation."
 msgstr ""
 
-#: includes/Admin/Tabs/ApiTab.php:67
-msgid "Enregistrer les identifiants"
+#: includes/Admin/AssetLoader.php:72
+msgid "Cela va supprimer les dates de dernière synchro. La prochaine synchronisation récupèrera tous les posts depuis le début. Continuer ?"
 msgstr ""
 
-#: includes/Admin/Tabs/ApiTab.php:72
-msgid "Connexion Meta"
+#: includes/Admin/AssetLoader.php:73
+msgid "Supprimer définitivement toutes les publications synchronisées et leurs médias ? Cette action est irréversible."
 msgstr ""
 
-#: includes/Admin/Tabs/ApiTab.php:77
-msgid "Connecté"
+#: includes/Admin/AssetLoader.php:74
+msgid "Réinitialisation complète : toutes les publications, médias, réglages et la connexion Meta seront supprimés. Êtes-vous certain ?"
+msgstr ""
+
+#: includes/Admin/AssetLoader.php:75
+msgid "Dernière confirmation : cette action est IRRÉVERSIBLE. Continuer ?"
+msgstr ""
+
+#: includes/Admin/AssetLoader.php:76
+msgid "Ajouter à la liste"
+msgstr ""
+
+#: includes/Admin/AssetLoader.php:77
+msgid "Validation en cours…"
+msgstr ""
+
+#: includes/Admin/AssetLoader.php:78
+msgid "Impossible de valider cette source."
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:35
+msgid "Licence Social Posts Sync"
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:37
+msgid "Renseignez votre clé de licence pour activer la connexion Facebook via notre serveur OAuth."
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:47
+msgid "Clé de licence"
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:52
+msgid "Laisser vide pour conserver l'actuelle"
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:60
+msgid "Clé de licence enregistrée et valide."
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:66
+msgid "Êtes-vous sûr de vouloir déconnecter la licence ? Cette action est irréversible. Vous devrez re-enregistrer votre licence pour utiliser le proxy."
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:68
+msgid "Déconnecter la licence"
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:74
+msgid "Aucune clé de licence enregistrée."
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:81
+msgid "Enregistrer la licence"
 msgstr ""
 
 #: includes/Admin/Tabs/ApiTab.php:86
+msgid "Connexion Facebook"
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:91
+msgid "Connecté"
+msgstr ""
+
+#: includes/Admin/Tabs/ApiTab.php:100
 #. translators: %s: Token expiry date
 msgid "Token valide jusqu'au : %s"
 msgstr ""
 
-#: includes/Admin/Tabs/ApiTab.php:97
+#: includes/Admin/Tabs/ApiTab.php:111
 msgid "Déconnecter"
 msgstr ""
 
-#: includes/Admin/Tabs/ApiTab.php:103
+#: includes/Admin/Tabs/ApiTab.php:117
 msgid "Non connecté"
 msgstr ""
 
-#: includes/Admin/Tabs/ApiTab.php:110
+#: includes/Admin/Tabs/ApiTab.php:124
 msgid "Se connecter avec Facebook"
 msgstr ""
 
-#: includes/Admin/Tabs/ApiTab.php:117
-#. translators: %s: Redirect URI
-msgid "URI de redirection à enregistrer dans votre App Meta : %s"
-msgstr ""
-
-#: includes/Admin/Tabs/ApiTab.php:124
-msgid "Veuillez d'abord enregistrer votre App ID et App Secret."
+#: includes/Admin/Tabs/ApiTab.php:129
+msgid "Veuillez d'abord enregistrer votre clé de licence."
 msgstr ""
 
 #: includes/Admin/Tabs/SourcesTab.php:32
@@ -196,27 +290,54 @@ msgstr ""
 msgid "Configurer la connexion"
 msgstr ""
 
-#: includes/Admin/Tabs/SourcesTab.php:46
-msgid "Actualiser les sources disponibles"
+#: includes/Admin/Tabs/SourcesTab.php:47
+msgid "Ajouter une source"
 msgstr ""
 
-#: includes/Admin/Tabs/SourcesTab.php:50
+#: includes/Admin/Tabs/SourcesTab.php:52
+msgid "Importer depuis mon compte"
+msgstr ""
+
+#: includes/Admin/Tabs/SourcesTab.php:56
 msgid "Chargement…"
 msgstr ""
 
 #: includes/Admin/Tabs/SourcesTab.php:62
-msgid "Enregistrer les sources"
+msgid "Ou entrez manuellement un ID de Page Facebook publique (ex : 123456789) ou un @username Instagram Business (ex : @moncompte) :"
 msgstr ""
 
-#: includes/Admin/Tabs/SourcesTab.php:80
-msgid "Aucune source configurée. Cliquez sur « Actualiser les sources disponibles » pour charger vos pages Facebook."
+#: includes/Admin/Tabs/SourcesTab.php:68
+msgid "ID ou @username"
+msgstr ""
+
+#: includes/Admin/Tabs/SourcesTab.php:71
+msgid "Valider"
 msgstr ""
 
 #: includes/Admin/Tabs/SourcesTab.php:86
+msgid "Sources configurées"
+msgstr ""
+
+#: includes/Admin/Tabs/SourcesTab.php:92
+msgid "Enregistrer les sources"
+msgstr ""
+
+#: includes/Admin/Tabs/SourcesTab.php:110
+msgid "Aucune source configurée. Utilisez le formulaire ci-dessus pour en ajouter."
+msgstr ""
+
+#: includes/Admin/Tabs/SourcesTab.php:116
+#: includes/Admin/Tabs/SourcesTab.php:132
+#: includes/Admin/Tabs/SourcesTab.php:140
+#: includes/Admin/Tabs/SourcesTab.php:156
+msgid "Supprimer"
+msgstr ""
+
+#: includes/Admin/Tabs/SourcesTab.php:116
 msgid "Pages Facebook"
 msgstr ""
 
-#: includes/Admin/Tabs/SourcesTab.php:109
+#: includes/Admin/Tabs/SourcesTab.php:140
 msgid "Comptes Instagram"
 msgstr ""
 
@@ -354,46 +475,66 @@ msgid "Par défaut : social-posts. N'utilisez que des lettres minuscules, chiffr
 msgstr ""
 
 #: includes/Admin/Tabs/AdvancedTab.php:57
-msgid "Enregistrer le slug"
-msgstr ""
-
-#: includes/Admin/Tabs/AdvancedTab.php:64
-msgid "Zone de danger"
-msgstr ""
-
-#: includes/Admin/Tabs/AdvancedTab.php:69
-msgid "Re-synchronisation complète"
+msgid "Timeout import médias (secondes)"
 msgstr ""
 
 #: includes/Admin/Tabs/AdvancedTab.php:70
-msgid "Supprime les dates de dernière synchro. La prochaine synchronisation récupèrera tous les posts depuis le début, sans toucher aux publications existantes."
+msgid "Durée maximale (en secondes) pour télécharger un média lors de la synchronisation. Entre 10 et 120 s. Par défaut : 30 s."
 msgstr ""
 
-#: includes/Admin/Tabs/AdvancedTab.php:75
-msgid "Réinitialiser les timestamps"
+#: includes/Admin/Tabs/AdvancedTab.php:76
+msgid "Données brutes API"
 msgstr ""
 
-#: includes/Admin/Tabs/AdvancedTab.php:82
-msgid "Supprimer toutes les publications synchronisées"
+#: includes/Admin/Tabs/AdvancedTab.php:86
+msgid "Stocker la réponse brute de l'API dans les métadonnées du post"
 msgstr ""
 
-#: includes/Admin/Tabs/AdvancedTab.php:83
-msgid "Supprime définitivement tous les posts de type \"social_post\" et leurs médias associés. Les réglages et la connexion Meta sont conservés."
-msgstr ""
-
-#: includes/Admin/Tabs/AdvancedTab.php:88
-msgid "Supprimer les publications"
+#: includes/Admin/Tabs/AdvancedTab.php:89
+msgid "Utile pour le débogage, mais augmente la taille de la base de données. Désactivé par défaut."
 msgstr ""
 
 #: includes/Admin/Tabs/AdvancedTab.php:95
+msgid "Enregistrer le slug"
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:102
+msgid "Zone de danger"
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:107
+msgid "Re-synchronisation complète"
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:108
+msgid "Supprime les dates de dernière synchro. La prochaine synchronisation récupèrera tous les posts depuis le début, sans toucher aux publications existantes."
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:113
+msgid "Réinitialiser les timestamps"
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:120
+msgid "Supprimer toutes les publications synchronisées"
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:121
+msgid "Supprime définitivement tous les posts de type \"social_post\" et leurs médias associés. Les réglages et la connexion Meta sont conservés."
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:126
+msgid "Supprimer les publications"
+msgstr ""
+
+#: includes/Admin/Tabs/AdvancedTab.php:133
 msgid "Réinitialisation complète du plugin"
 msgstr ""
 
-#: includes/Admin/Tabs/AdvancedTab.php:96
-msgid "Supprime toutes les publications, tous les médias importés, la connexion Meta, les réglages et les timestamps. Remet le plugin à zéro."
+#: includes/Admin/Tabs/AdvancedTab.php:134
+msgid "Supprime toutes les publications, tous les médias importés, la connexion Meta, les réglages et les timestamps. Révoque également la licence sur le serveur. Remet le plugin à zéro."
 msgstr ""
 
-#: includes/Admin/Tabs/AdvancedTab.php:101
+#: includes/Admin/Tabs/AdvancedTab.php:139
 msgid "Tout réinitialiser"
 msgstr ""
 
@@ -591,6 +732,7 @@ msgstr ""
 msgid "Navigation de la liste"
 msgstr ""
 
+#: includes/Admin/Tabs/SyncTab.php:180
 #: includes/CPT/SocialPostCPT.php:129
 msgid "Filtrer la liste"
 msgstr ""
@@ -599,18 +741,90 @@ msgstr ""
 msgid "Likes"
 msgstr ""
 
-#: includes/Auth/MetaOAuth.php:121
+#: includes/Auth/MetaOAuth.php:122
 msgid "Invalid OAuth state. Please try again."
 msgstr ""
 
-#: includes/Auth/MetaOAuth.php:122
+#: includes/Auth/MetaOAuth.php:123
 msgid "OAuth Error"
-msgstr ""
-
-#: includes/Auth/MetaOAuth.php:139
-msgid "Missing authorization code."
 msgstr ""
 
 #: includes/Auth/MetaOAuth.php:140
+msgid "Missing access token in callback."
+msgstr ""
+
+#: includes/Auth/MetaOAuth.php:141
 msgid "OAuth Error"
+msgstr ""
+
+#: includes/Api/InstagramFeed.php
+#. translators: %s: Instagram username
+msgid "Aucun compte Instagram Business lié à @%s."
+msgstr ""
+
+#: includes/Api/InstagramFeed.php
+#. translators: %s: Instagram username
+msgid "Compte @%s introuvable ou non accessible."
+msgstr ""
+
+#: includes/Elementor/DynamicTags.php
+msgid "Social Posts Sync"
+msgstr ""
+
+#: includes/Elementor/Tags/ScpsAuthorAvatarTag.php
+msgid "Avatar de la page / compte"
+msgstr ""
+
+#: includes/Elementor/Tags/ScpsAuthorNameTag.php
+msgid "Nom de la page / compte"
+msgstr ""
+
+#: includes/Elementor/Tags/ScpsGalleryTag.php
+msgid "Images de la publication"
+msgstr ""
+
+#: includes/Elementor/Tags/ScpsLikesCountTag.php
+msgid "Nombre de likes"
+msgstr ""
+
+#: includes/Elementor/Tags/ScpsPermalinkTag.php
+msgid "Lien du post original"
+msgstr ""
+
+#: includes/Elementor/Tags/ScpsPlatformTag.php
+msgid "Plateforme sociale"
+msgstr ""
+
+#: includes/Elementor/Tags/ScpsPublishedAtTag.php
+msgid "Date de publication originale"
+msgstr ""
+
+#: includes/Elementor/Tags/ScpsPublishedAtTag.php
+msgid "Format de date"
+msgstr ""
+
+#: includes/Elementor/Tags/ScpsPublishedAtTag.php
+msgid "Format PHP (ex : d/m/Y). Voir la documentation PHP."
+msgstr ""
+
+#: includes/Elementor/Tags/ScpsVideoUrlTag.php
+msgid "URL de la vidéo"
+msgstr ""
+
+#: includes/Cron/CronScheduler.php
+msgid "Toutes les 6 heures"
+msgstr ""
+
+#: includes/Cron/CronScheduler.php
+msgid "Toutes les 12 heures"
+msgstr ""
+
+#: includes/Sync/PostSyncer.php
+#. translators: %1$s: post ID or type, %2$s: date string
+msgid "Post %1$s du %2$s"
+msgstr ""
+
+#: includes/Sync/PostSyncer.php
+#. translators: %s: post ID
+msgid "Post %s"
 msgstr ""
