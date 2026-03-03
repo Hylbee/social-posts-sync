@@ -4,6 +4,7 @@
  *
  * Registers and renders the plugin settings UI under Settings > Social Posts Sync.
  * Contains four tabs: API Configuration, Sources, Sync, and Advanced.
+ * AJAX handling is delegated to AjaxHandlers.
  *
  * @package SocialPostsSync\Admin
  */
@@ -15,17 +16,14 @@ namespace SocialPostsSync\Admin;
 defined('ABSPATH') || exit;
 
 use SocialPostsSync\Auth\MetaOAuth;
-use SocialPostsSync\Api\MetaApiClient;
-use SocialPostsSync\Api\FacebookFeed;
-use SocialPostsSync\Api\InstagramFeed;
-use SocialPostsSync\Sync\PostSyncer;
 use SocialPostsSync\Admin\Tabs\ApiTab;
 use SocialPostsSync\Admin\Tabs\SourcesTab;
 use SocialPostsSync\Admin\Tabs\SyncTab;
 use SocialPostsSync\Admin\Tabs\AdvancedTab;
 
 /**
- * Manages the plugin admin settings page and all associated AJAX actions.
+ * Manages the plugin admin settings page, form handlers, and admin notices.
+ * AJAX actions are handled by AjaxHandlers.
  */
 class SettingsPage {
 
@@ -42,19 +40,15 @@ class SettingsPage {
         add_action('admin_menu', [$this, 'addMenuPage']);
         add_action('admin_init', [$this, 'registerSettings']);
         add_action('admin_post_scps_save_api_settings', [$this, 'handleSaveApiSettings']);
-        add_action('admin_post_scps_save_sources', [$this, 'handleSaveSources']);
-        add_action('admin_post_scps_save_cron', [$this, 'handleSaveCron']);
+        add_action('admin_post_scps_save_sources',      [$this, 'handleSaveSources']);
+        add_action('admin_post_scps_save_cron',         [$this, 'handleSaveCron']);
         add_action('admin_post_scps_save_sync_settings', [$this, 'handleSaveSyncSettings']);
-        add_action('admin_post_scps_disconnect', [$this, 'handleDisconnect']);
-        add_action('admin_post_scps_save_advanced', [$this, 'handleSaveAdvanced']);
-        add_action('wp_ajax_scps_sync_now', [$this, 'handleAjaxSyncNow']);
-        add_action('wp_ajax_scps_sync_status', [$this, 'handleAjaxSyncStatus']);
-        add_action('wp_ajax_scps_unlock_sync', [$this, 'handleAjaxUnlockSync']);
-        add_action('wp_ajax_scps_load_sources', [$this, 'handleAjaxLoadSources']);
-        add_action('wp_ajax_scps_validate_source', [$this, 'handleAjaxValidateSource']);
-        add_action('wp_ajax_scps_reset_sync', [$this, 'handleAjaxResetSync']);
-        add_action('wp_ajax_scps_purge_all', [$this, 'handleAjaxPurgeAll']);
+        add_action('admin_post_scps_disconnect',        [$this, 'handleDisconnect']);
+        add_action('admin_post_scps_save_advanced',     [$this, 'handleSaveAdvanced']);
         add_action('admin_notices', [$this, 'displayAdminNotices']);
+
+        // Delegate all AJAX actions to a dedicated handler class
+        (new AjaxHandlers($this->oauth))->init();
     }
 
     /**
@@ -82,7 +76,7 @@ class SettingsPage {
     // -------------------------------------------------------------------------
 
     /**
-     * Handle saving of API configuration (App ID and App Secret).
+     * Handle saving of API configuration (licence key).
      */
     public function handleSaveApiSettings(): void {
         if (!current_user_can('manage_options')) {
@@ -154,27 +148,6 @@ class SettingsPage {
     }
 
     /**
-     * Extract a flat list of IDs for a given platform from enabled_sources.
-     *
-     * @param array  $enabled_sources The scps_enabled_sources option value.
-     * @param string $platform        'facebook' or 'instagram'.
-     *
-     * @return string[]
-     */
-    private function extractIds(array $enabled_sources, string $platform): array {
-        $ids = [];
-        foreach (($enabled_sources[$platform] ?? []) as $source) {
-            if (is_array($source) && !empty($source['id'])) {
-                $ids[] = (string) $source['id'];
-            } elseif (is_string($source) && $source !== '') {
-                // Backwards-compat: old flat format
-                $ids[] = $source;
-            }
-        }
-        return $ids;
-    }
-
-    /**
      * Handle saving of cron schedule.
      */
     public function handleSaveCron(): void {
@@ -225,7 +198,7 @@ class SettingsPage {
     }
 
     /**
-     * Handle saving of advanced settings (CPT slug, etc.).
+     * Handle saving of advanced settings (CPT slug, media sideload timeout).
      */
     public function handleSaveAdvanced(): void {
         if (!current_user_can('manage_options')) {
@@ -280,297 +253,6 @@ class SettingsPage {
             admin_url('options-general.php')
         ));
         exit;
-    }
-
-    // -------------------------------------------------------------------------
-    // AJAX Handlers
-    // -------------------------------------------------------------------------
-
-    /**
-     * AJAX: Trigger an immediate sync for all enabled sources.
-     */
-    public function handleAjaxSyncNow(): void {
-        check_ajax_referer('scps_admin_nonce', 'nonce');
-
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => __('Accès non autorisé.', 'social-posts-sync')]);
-            return;
-        }
-
-        // Acquire lock — returns false if already running
-        if (!scps_acquire_sync_lock()) {
-            wp_send_json_error([
-                'message' => __('Une synchronisation est déjà en cours. Veuillez patienter.', 'social-posts-sync'),
-                'locked'  => true,
-            ]);
-            return;
-        }
-
-        try {
-            $this->runSync();
-        } catch (\Throwable $e) {
-            scps_release_sync_lock();
-            wp_send_json_error(['message' => $e->getMessage()]);
-            return;
-        }
-
-        scps_release_sync_lock();
-
-        $log  = get_option('scps_sync_log', []);
-        $last = !empty($log) ? $log[0] : [];
-
-        wp_send_json_success([
-            'message' => __('Synchronisation terminée.', 'social-posts-sync'),
-            'log'     => $last,
-        ]);
-    }
-
-    /**
-     * Internal sync logic for AJAX-triggered syncs.
-     * Mirrors SocialPostsSync::do_sync() but runs in the SettingsPage context.
-     *
-     * @throws \RuntimeException If no access token is available.
-     */
-    private function runSync(): void {
-        $enabled_sources = get_option('scps_enabled_sources', ['facebook' => [], 'instagram' => []]);
-        if (!is_array($enabled_sources)) {
-            $enabled_sources = ['facebook' => [], 'instagram' => []];
-        }
-
-        $token = $this->oauth->getAccessToken();
-        if (!$token) {
-            throw new \RuntimeException(esc_html__('Aucun token d\'accès disponible. Reconnectez-vous à Meta.', 'social-posts-sync'));
-        }
-
-        $client  = new MetaApiClient($token);
-        $syncer  = new PostSyncer();
-        $log     = ['timestamp' => current_time('c'), 'success' => 0, 'errors' => 0, 'sources' => []];
-
-        do_action('scps_before_sync', $enabled_sources);
-
-        // Facebook pages
-        $fb_feed = new FacebookFeed($client);
-        foreach ($this->extractIds($enabled_sources, 'facebook') as $page_id) {
-            $last_sync = get_option("scps_last_sync_{$page_id}", '');
-            try {
-                $posts = $last_sync
-                    ? $fb_feed->fetchSince($page_id, $last_sync)
-                    : $fb_feed->fetchPosts($page_id);
-
-                foreach ($posts as $post) {
-                    try {
-                        $syncer->sync($post);
-                        $log['success']++;
-                    } catch (\Throwable $e) {
-                        $log['errors']++;
-                    }
-                }
-
-                update_option("scps_last_sync_{$page_id}", (string) time());
-                $log['sources'][$page_id] = count($posts);
-            } catch (\Throwable $e) {
-                $log['errors']++;
-            }
-        }
-
-        // Instagram accounts
-        // Si l'ID est non-numérique → username tiers (Business Discovery)
-        // Si l'ID est numérique → compte propre (accès direct par ID)
-        $ig_feed = new InstagramFeed($client);
-        foreach ($this->extractIds($enabled_sources, 'instagram') as $ig_id) {
-            $last_sync  = get_option("scps_last_sync_{$ig_id}", '');
-            $is_username = !ctype_digit($ig_id);
-            try {
-                if ($is_username) {
-                    $posts = $last_sync
-                        ? $ig_feed->fetchDiscoverySince($ig_id, $last_sync)
-                        : $ig_feed->fetchDiscoveryPosts($ig_id);
-                } else {
-                    $posts = $last_sync
-                        ? $ig_feed->fetchSince($ig_id, $last_sync)
-                        : $ig_feed->fetchPosts($ig_id);
-                }
-
-                foreach ($posts as $post) {
-                    try {
-                        $syncer->sync($post);
-                        $log['success']++;
-                    } catch (\Throwable $e) {
-                        $log['errors']++;
-                    }
-                }
-
-                update_option("scps_last_sync_{$ig_id}", (string) time());
-                $log['sources'][$ig_id] = count($posts);
-            } catch (\Throwable $e) {
-                $log['errors']++;
-            }
-        }
-
-        do_action('scps_after_sync', $log);
-        scps_log_sync($log);
-    }
-
-    /**
-     * AJAX: Return current sync lock status (used to poll button state on page load).
-     */
-    public function handleAjaxSyncStatus(): void {
-        check_ajax_referer('scps_admin_nonce', 'nonce');
-
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error();
-            return;
-        }
-
-        wp_send_json_success(['running' => scps_is_sync_running()]);
-    }
-
-    /**
-     * AJAX: Force-release a stuck sync lock.
-     */
-    public function handleAjaxUnlockSync(): void {
-        check_ajax_referer('scps_admin_nonce', 'nonce');
-
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error();
-            return;
-        }
-
-        scps_release_sync_lock();
-        wp_send_json_success(['message' => __('Verrou libéré.', 'social-posts-sync')]);
-    }
-
-    /**
-     * AJAX: Reset sync timestamps so the next sync re-fetches all posts.
-     */
-    public function handleAjaxResetSync(): void {
-        check_ajax_referer('scps_admin_nonce', 'nonce');
-
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => __('Accès non autorisé.', 'social-posts-sync')]);
-            return;
-        }
-
-        $enabled_sources = get_option('scps_enabled_sources', ['facebook' => [], 'instagram' => []]);
-        if (!is_array($enabled_sources)) {
-            $enabled_sources = ['facebook' => [], 'instagram' => []];
-        }
-
-        foreach ($this->extractIds($enabled_sources, 'facebook') as $page_id) {
-            delete_option("scps_last_sync_{$page_id}");
-        }
-        foreach ($this->extractIds($enabled_sources, 'instagram') as $ig_id) {
-            delete_option("scps_last_sync_{$ig_id}");
-        }
-
-        wp_send_json_success(['message' => __('Timestamps réinitialisés. La prochaine sync récupèrera tous les posts.', 'social-posts-sync')]);
-    }
-
-    /**
-     * AJAX: Load Facebook Pages and Instagram accounts for the Sources tab.
-     */
-    public function handleAjaxLoadSources(): void {
-        check_ajax_referer('scps_admin_nonce', 'nonce');
-
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => __('Accès non autorisé.', 'social-posts-sync')]);
-            return;
-        }
-
-        $token = $this->oauth->getAccessToken();
-        if (!$token) {
-            wp_send_json_error(['message' => __('Non connecté à Meta.', 'social-posts-sync')]);
-            return;
-        }
-
-        try {
-            $client   = new MetaApiClient($token);
-            $fb_feed  = new FacebookFeed($client);
-            $ig_feed  = new InstagramFeed($client);
-
-            $pages    = $fb_feed->getPages();
-            $accounts = $ig_feed->getAccounts();
-
-            wp_send_json_success([
-                'pages'    => $pages,
-                'accounts' => $accounts,
-            ]);
-        } catch (\Throwable $e) {
-            wp_send_json_error(['message' => $e->getMessage()]);
-        }
-    }
-
-    /**
-     * AJAX: Validate a Facebook Page ID or Instagram username before adding it as a source.
-     *
-     * Detects the platform automatically:
-     *  - Identifier starting with '@' or containing only letters/digits/underscores → Instagram
-     *  - Purely numeric identifier → Facebook
-     *
-     * Returns: { platform, id, name, avatar [, username] }
-     */
-    public function handleAjaxValidateSource(): void {
-        check_ajax_referer('scps_admin_nonce', 'nonce');
-
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => __('Accès non autorisé.', 'social-posts-sync')]);
-            return;
-        }
-
-        $token = $this->oauth->getAccessToken();
-        if (!$token) {
-            wp_send_json_error(['message' => __('Non connecté à Meta.', 'social-posts-sync')]);
-            return;
-        }
-
-        $identifier = sanitize_text_field(wp_unslash($_POST['identifier'] ?? ''));
-        if ($identifier === '') {
-            wp_send_json_error(['message' => __('Identifiant vide.', 'social-posts-sync')]);
-            return;
-        }
-
-        // Détection automatique : @ ou non-numérique → Instagram, numérique → Facebook
-        $clean    = ltrim($identifier, '@');
-        $platform = ctype_digit($clean) ? 'facebook' : 'instagram';
-
-        // Pattern validation
-        if ($platform === 'facebook' && !preg_match('/^\d{1,20}$/', $clean)) {
-            wp_send_json_error(['message' => __('ID Facebook invalide (doit être numérique, max 20 chiffres).', 'social-posts-sync')]);
-            return;
-        }
-        if ($platform === 'instagram' && !preg_match('/^[a-zA-Z0-9_.]{1,30}$/', $clean)) {
-            wp_send_json_error(['message' => __('Nom d\'utilisateur Instagram invalide (lettres, chiffres, . et _ uniquement, max 30 caractères).', 'social-posts-sync')]);
-            return;
-        }
-
-        try {
-            $client = new MetaApiClient($token);
-
-            if ($platform === 'facebook') {
-                $fb_feed = new FacebookFeed($client);
-                $info    = $fb_feed->fetchPublicPageInfo($clean);
-
-                wp_send_json_success([
-                    'platform' => 'facebook',
-                    'id'       => $info['id'],
-                    'name'     => $info['name'],
-                    'avatar'   => $info['avatar'],
-                ]);
-            } else {
-                $ig_feed = new InstagramFeed($client);
-                $info    = $ig_feed->fetchDiscoveryAccountInfo($clean);
-
-                wp_send_json_success([
-                    'platform' => 'instagram',
-                    'id'       => $info['id'],
-                    'username' => $info['username'],
-                    'name'     => $info['name'],
-                    'avatar'   => $info['avatar'],
-                ]);
-            }
-        } catch (\Throwable $e) {
-            wp_send_json_error(['message' => $e->getMessage()]);
-        }
     }
 
     // -------------------------------------------------------------------------
@@ -703,79 +385,5 @@ class SettingsPage {
                 (new ApiTab($this->oauth))->render();
                 break;
         }
-    }
-
-    // -------------------------------------------------------------------------
-    // AJAX: Purge
-    // -------------------------------------------------------------------------
-
-    /**
-     * AJAX: Purge all social_post entries (and optionally all plugin options).
-     */
-    public function handleAjaxPurgeAll(): void {
-        check_ajax_referer('scps_admin_nonce', 'nonce');
-
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => __('Accès non autorisé.', 'social-posts-sync')]);
-            return;
-        }
-
-        $scope = sanitize_text_field(wp_unslash($_POST['scope'] ?? 'posts'));
-
-        // Delete all social_post entries (permanently, bypass trash)
-        $posts = get_posts([
-            'post_type'      => \SocialPostsSync\CPT\SocialPostCPT::POST_TYPE,
-            'post_status'    => 'any',
-            'posts_per_page' => -1,
-            'fields'         => 'ids',
-        ]);
-
-        $deleted_posts = 0;
-        foreach ($posts as $post_id) {
-            // Delete attached media too
-            $attachments = get_posts([
-                'post_type'      => 'attachment',
-                'post_parent'    => $post_id,
-                'post_status'    => 'any',
-                'posts_per_page' => -1,
-                'fields'         => 'ids',
-            ]);
-            foreach ($attachments as $att_id) {
-                wp_delete_attachment($att_id, true);
-            }
-            wp_delete_post($post_id, true);
-            $deleted_posts++;
-        }
-
-        // Reset sync timestamps
-        $enabled_sources = get_option('scps_enabled_sources', ['facebook' => [], 'instagram' => []]);
-        if (is_array($enabled_sources)) {
-            foreach ($this->extractIds($enabled_sources, 'facebook') as $page_id) {
-                delete_option("scps_last_sync_{$page_id}");
-            }
-            foreach ($this->extractIds($enabled_sources, 'instagram') as $ig_id) {
-                delete_option("scps_last_sync_{$ig_id}");
-            }
-        }
-
-        // Full reset: also wipe settings and connection
-        if ($scope === 'all') {
-            $this->oauth->disconnect();
-            delete_option('scps_licence_key');
-            delete_option('scps_enabled_sources');
-            delete_option('scps_sync_log');
-            delete_option('scps_max_posts');
-            delete_option('scps_cron_interval');
-            delete_option('scps_sync_lock');
-            delete_option('scps_cpt_slug');
-        }
-
-        wp_send_json_success([
-            'message' => sprintf(
-                /* translators: %d: number of deleted posts */
-                _n('%d publication supprimée.', '%d publications supprimées.', $deleted_posts, 'social-posts-sync'),
-                $deleted_posts
-            ),
-        ]);
     }
 }
