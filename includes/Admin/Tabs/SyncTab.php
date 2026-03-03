@@ -210,26 +210,43 @@ class SyncTab {
     /**
      * Count social_post entries for a given platform and source ID.
      *
+     * Result is cached for 5 minutes via a transient. The cache is invalidated
+     * automatically after each sync via the scps_after_sync action.
+     *
      * @param string $platform  'facebook' or 'instagram'.
      * @param string $source_id Facebook Page ID or Instagram Account ID.
      *
      * @return int Post count.
      */
     private function countSourcePosts(string $platform, string $source_id): int {
+        $cache_key = 'scps_count_' . md5($platform . ':' . $source_id);
+        $cached    = get_transient($cache_key);
+        if ($cached !== false) {
+            return (int) $cached;
+        }
+
         $query = new \WP_Query([
             'post_type'      => \SocialPostsSync\CPT\SocialPostCPT::POST_TYPE,
             'post_status'    => 'publish',
-            'posts_per_page' => -1,
-            'meta_query'     => [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- intentional, count per platform is admin-only and infrequent
+            'posts_per_page' => 1,
+            'no_found_rows'  => false,
+            'meta_query'     => [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- admin-only, infrequent, results cached
                 'relation' => 'AND',
                 [
                     'key'   => \SocialPostsSync\CPT\SocialPostCPT::META_PLATFORM,
                     'value' => $platform,
                 ],
+                [
+                    'key'   => \SocialPostsSync\CPT\SocialPostCPT::META_SOURCE_ID,
+                    'value' => $source_id,
+                ],
             ],
             'fields'         => 'ids',
         ]);
 
-        return (int) $query->found_posts;
+        $count = (int) $query->found_posts;
+        set_transient($cache_key, $count, 5 * MINUTE_IN_SECONDS);
+
+        return $count;
     }
 }

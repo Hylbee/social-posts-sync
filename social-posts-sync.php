@@ -69,6 +69,19 @@ add_action('plugins_loaded', function (): void {
     // Cron
     (new SocialPostsSync\Cron\CronScheduler())->init();
 
+    // Invalidate per-source post-count transients after every sync
+    add_action('scps_after_sync', function (): void {
+        $sources = get_option('scps_enabled_sources', []);
+        if (!is_array($sources)) {
+            return;
+        }
+        foreach (['facebook', 'instagram'] as $platform) {
+            foreach (scps_extract_source_ids($sources, $platform) as $source_id) {
+                delete_transient('scps_count_' . md5($platform . ':' . $source_id));
+            }
+        }
+    });
+
     // Elementor dynamic tags
     add_action('elementor/dynamic_tags/register', function (\Elementor\Core\DynamicTags\Manager $manager): void {
         (new SocialPostsSync\Elementor\DynamicTags())->register($manager);
