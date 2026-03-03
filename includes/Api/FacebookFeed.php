@@ -273,18 +273,19 @@ class FacebookFeed implements FeedInterface {
      * @param string        $pageId      Facebook Page ID.
      * @param MetaApiClient $page_client Client to use.
      *
-     * @return array Associative array with 'name' and 'avatar'.
+     * @return array Associative array with 'account_id', 'name' and 'avatar'.
      */
     private function getPageInfo(string $pageId, MetaApiClient $page_client): array {
         try {
             $data = $page_client->get("/{$pageId}", ['fields' => self::PAGE_FIELDS]);
             return [
-                'name'   => (string) ($data['name'] ?? ''),
-                'avatar' => (string) ($data['picture']['data']['url'] ?? ''),
+                'account_id' => $pageId,
+                'name'       => (string) ($data['name'] ?? ''),
+                'avatar'     => (string) ($data['picture']['data']['url'] ?? ''),
             ];
         } catch (\Throwable $e) {
             unset($e);
-            return ['name' => '', 'avatar' => ''];
+            return ['account_id' => $pageId, 'name' => '', 'avatar' => ''];
         }
     }
 }

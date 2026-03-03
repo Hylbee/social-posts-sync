@@ -237,7 +237,7 @@ class SyncTab {
                     'value' => $platform,
                 ],
                 [
-                    'key'   => \SocialPostsSync\CPT\SocialPostCPT::META_SOURCE_ID,
+                    'key'   => \SocialPostsSync\CPT\SocialPostCPT::META_ACCOUNT_ID,
                     'value' => $source_id,
                 ],
             ],

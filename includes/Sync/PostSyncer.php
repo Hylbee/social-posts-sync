@@ -182,6 +182,7 @@ class PostSyncer {
     private function saveMeta(int $post_id, array $data): void {
         update_post_meta($post_id, SocialPostCPT::META_PLATFORM,      sanitize_text_field($data['platform']      ?? ''));
         update_post_meta($post_id, SocialPostCPT::META_SOURCE_ID,     sanitize_text_field($data['source_id']     ?? ''));
+        update_post_meta($post_id, SocialPostCPT::META_ACCOUNT_ID,    sanitize_text_field($data['account_id']    ?? ''));
         update_post_meta($post_id, SocialPostCPT::META_CONTENT,       sanitize_textarea_field($data['content']   ?? ''));
         update_post_meta($post_id, SocialPostCPT::META_PERMALINK,     esc_url_raw($data['permalink']             ?? ''));
         update_post_meta($post_id, SocialPostCPT::META_PUBLISHED_AT,  sanitize_text_field($data['published_at']  ?? ''));

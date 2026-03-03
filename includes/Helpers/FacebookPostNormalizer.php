@@ -60,6 +60,7 @@ class FacebookPostNormalizer {
         $normalized = [
             'platform'      => 'facebook',
             'source_id'     => (string) ($raw['id'] ?? ''),
+            'account_id'    => (string) ($page_info['account_id'] ?? ''),
             'content'       => (string) ($raw['message'] ?? ''),
             'permalink'     => (string) ($raw['permalink_url'] ?? ''),
             'published_at'  => $published_at,

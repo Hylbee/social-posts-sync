@@ -69,6 +69,7 @@ class InstagramPostNormalizer {
         $normalized = [
             'platform'      => 'instagram',
             'source_id'     => (string) ($raw['id']        ?? ''),
+            'account_id'    => (string) ($account_info['account_id'] ?? ''),
             'content'       => (string) ($raw['caption']   ?? ''),
             'permalink'     => (string) ($raw['permalink'] ?? ''),
             'published_at'  => $published_at,

@@ -28,6 +28,7 @@ class SocialPostCPT {
      */
     public const META_PLATFORM      = '_scps_platform';
     public const META_SOURCE_ID     = '_scps_source_id';
+    public const META_ACCOUNT_ID    = '_scps_account_id';
     public const META_CONTENT       = '_scps_content';
     public const META_PERMALINK     = '_scps_permalink';
     public const META_PUBLISHED_AT  = '_scps_published_at';

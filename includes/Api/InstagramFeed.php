@@ -131,9 +131,10 @@ class InstagramFeed implements FeedInterface {
         $discovery = $data['business_discovery'] ?? [];
 
         $account_info = [
-            'name'     => (string) ($discovery['name']                ?? $username),
-            'username' => (string) ($discovery['username']            ?? $username),
-            'avatar'   => (string) ($discovery['profile_picture_url'] ?? ''),
+            'account_id' => $username,
+            'name'       => (string) ($discovery['name']                ?? $username),
+            'username'   => (string) ($discovery['username']            ?? $username),
+            'avatar'     => (string) ($discovery['profile_picture_url'] ?? ''),
         ];
 
         $posts = [];
@@ -262,7 +263,7 @@ class InstagramFeed implements FeedInterface {
      *
      * @param string $igAccountId Instagram Business Account ID.
      *
-     * @return array Associative array with 'name', 'username', 'avatar'.
+     * @return array Associative array with 'account_id', 'name', 'username', 'avatar'.
      */
     private function getAccountInfo(string $igAccountId): array {
         try {
@@ -270,13 +271,14 @@ class InstagramFeed implements FeedInterface {
                 'fields' => 'id,name,username,profile_picture_url',
             ]);
             return [
-                'name'     => (string) ($data['name']                ?? $data['username'] ?? ''),
-                'username' => (string) ($data['username']            ?? ''),
-                'avatar'   => (string) ($data['profile_picture_url'] ?? ''),
+                'account_id' => $igAccountId,
+                'name'       => (string) ($data['name']                ?? $data['username'] ?? ''),
+                'username'   => (string) ($data['username']            ?? ''),
+                'avatar'     => (string) ($data['profile_picture_url'] ?? ''),
             ];
         } catch (\Throwable $e) {
             unset($e);
-            return ['name' => '', 'username' => '', 'avatar' => ''];
+            return ['account_id' => $igAccountId, 'name' => '', 'username' => '', 'avatar' => ''];
         }
     }
 }
