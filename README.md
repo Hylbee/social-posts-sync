@@ -1,6 +1,6 @@
 # Social Posts Sync
 
-Sync Facebook Pages and Instagram Business accounts to WordPress via the Meta Graph API.
+Fetches posts from your social media platforms and save them as custom WordPress post types.
 
 **Version:** 1.2.1 — **Requires:** WordPress 6.0+, PHP 8.0+
 
