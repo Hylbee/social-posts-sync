@@ -226,6 +226,9 @@ class SettingsPage {
         }
         update_option('scps_sideload_timeout', $sideload_timeout);
 
+        // Raw API data storage toggle
+        update_option('scps_store_raw_data', isset($_POST['scps_store_raw_data']));
+
         wp_safe_redirect(add_query_arg(
             ['page' => 'social-posts-sync', 'tab' => 'advanced', 'scps_saved' => '1'],
             admin_url('options-general.php')

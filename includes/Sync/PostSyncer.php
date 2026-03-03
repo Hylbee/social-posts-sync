@@ -187,7 +187,10 @@ class PostSyncer {
         update_post_meta($post_id, SocialPostCPT::META_AUTHOR_NAME,  sanitize_text_field($data['author_name']   ?? ''));
         update_post_meta($post_id, SocialPostCPT::META_AUTHOR_AVATAR, esc_url_raw($data['author_avatar']        ?? ''));
         update_post_meta($post_id, SocialPostCPT::META_LIKES_COUNT,  absint($data['likes_count']                ?? 0));
-        update_post_meta($post_id, SocialPostCPT::META_RAW_DATA,     wp_json_encode($data['raw']                ?? []));
+
+        if (get_option('scps_store_raw_data', false)) {
+            update_post_meta($post_id, SocialPostCPT::META_RAW_DATA, wp_json_encode($data['raw'] ?? []));
+        }
     }
 
     // -------------------------------------------------------------------------

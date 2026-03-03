@@ -71,6 +71,25 @@ class AdvancedTab {
                             </p>
                         </td>
                     </tr>
+                    <tr>
+                        <th scope="row">
+                            <?php esc_html_e('Données brutes API', 'social-posts-sync'); ?>
+                        </th>
+                        <td>
+                            <label for="scps_store_raw_data">
+                                <input
+                                    type="checkbox"
+                                    id="scps_store_raw_data"
+                                    name="scps_store_raw_data"
+                                    value="1"
+                                    <?php checked((bool) get_option('scps_store_raw_data', false)); ?>>
+                                <?php esc_html_e('Stocker la réponse brute de l\'API dans les métadonnées du post', 'social-posts-sync'); ?>
+                            </label>
+                            <p class="description">
+                                <?php esc_html_e('Utile pour le débogage, mais augmente la taille de la base de données. Désactivé par défaut.', 'social-posts-sync'); ?>
+                            </p>
+                        </td>
+                    </tr>
                 </table>
 
                 <?php submit_button(__('Enregistrer le slug', 'social-posts-sync')); ?>
