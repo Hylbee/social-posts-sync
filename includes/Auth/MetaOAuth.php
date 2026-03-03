@@ -13,6 +13,9 @@
  *  - scps_licence_key            → AES-256-CBC encrypted licence key
  *  - scps_meta_account_name      → Connected account name (display only)
  *
+ * Encryption is delegated to Helpers\Encryption.
+ * Proxy health checks are delegated to Helpers\ProxyClient.
+ *
  * @package SocialPostsSync\Auth
  */
 
@@ -22,15 +25,13 @@ namespace SocialPostsSync\Auth;
 
 defined('ABSPATH') || exit;
 
+use SocialPostsSync\Helpers\Encryption;
+use SocialPostsSync\Helpers\ProxyClient;
+
 /**
  * Handles Meta OAuth 2.0 flow via the Social Posts Sync proxy server.
  */
 class MetaOAuth {
-
-    /**
-     * Proxy base URL.
-     */
-    private const PROXY_BASE = 'https://social-proxy.hylbee.pro';
 
     /**
      * Meta API endpoint to verify token and get user info.
@@ -38,14 +39,17 @@ class MetaOAuth {
     private const ME_URL = 'https://graph.facebook.com/v21.0/me';
 
     /**
-     * Encryption cipher used for storing sensitive values.
-     */
-    private const CIPHER = 'AES-256-CBC';
-
-    /**
      * Number of seconds before expiry at which the token is considered "expiring soon".
      */
     private const EXPIRY_THRESHOLD = 7 * DAY_IN_SECONDS;
+
+    private Encryption  $encryption;
+    private ProxyClient $proxy;
+
+    public function __construct(?Encryption $encryption = null, ?ProxyClient $proxy = null) {
+        $this->encryption = $encryption ?? new Encryption();
+        $this->proxy      = $proxy      ?? new ProxyClient();
+    }
 
     // -------------------------------------------------------------------------
     // Authorization URL
@@ -69,7 +73,7 @@ class MetaOAuth {
 
         return add_query_arg([
             'back' => urlencode($back),
-        ], self::PROXY_BASE . '/auth/facebook');
+        ], ProxyClient::BASE_URL . '/auth/facebook');
     }
 
     /**
@@ -100,7 +104,6 @@ class MetaOAuth {
      * - Redirects back to the settings page.
      */
     public function handleCallback(): void {
-        // Capability check — defence-in-depth (also verified by the caller)
         if (!current_user_can('manage_options')) {
             wp_die(
                 esc_html__('Accès non autorisé.', 'social-posts-sync'),
@@ -109,7 +112,6 @@ class MetaOAuth {
             );
         }
 
-        // CSRF protection: verify state nonce
         $state = sanitize_text_field(wp_unslash($_GET['state'] ?? ''));
         if (!wp_verify_nonce($state, 'scps_oauth_state')) {
             wp_die(
@@ -119,7 +121,6 @@ class MetaOAuth {
             );
         }
 
-        // Handle errors returned by the proxy
         if (isset($_GET['error'])) {
             $error_reason = sanitize_text_field(wp_unslash($_GET['error_description'] ?? $_GET['error']));
             wp_safe_redirect(add_query_arg(
@@ -140,7 +141,6 @@ class MetaOAuth {
 
         $expires_in = absint($_GET['expires_in'] ?? (60 * DAY_IN_SECONDS));
 
-        // Store token and fetch account name
         $this->storeAccessToken($token, $expires_in);
         $this->fetchAndStoreAccountName($token);
 
@@ -180,7 +180,7 @@ class MetaOAuth {
         $response = wp_remote_get(add_query_arg([
             'access_token' => $access_token,
             'back'         => urlencode($back),
-        ], self::PROXY_BASE . '/auth/facebook/refresh'), [
+        ], ProxyClient::BASE_URL . '/auth/facebook/refresh'), [
             'headers' => [
                 'X-Licence-Key' => $licence_key,
             ],
@@ -206,6 +206,7 @@ class MetaOAuth {
      * Validate the licence key against the proxy.
      *
      * Calls GET /licence/validate?licence_key=KEY&domain=DOMAIN
+     * Rate limited to max 5 attempts per IP per 5 minutes.
      *
      * @param string $key Licence key to validate.
      *
@@ -216,7 +217,6 @@ class MetaOAuth {
             return false;
         }
 
-        // Rate limiting: max 5 attempts per IP per 5 minutes
         $ip            = sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'] ?? ''));
         $transient_key = 'scps_licence_attempts_' . md5($ip);
         $attempts      = (int) get_transient($transient_key);
@@ -228,7 +228,7 @@ class MetaOAuth {
         $response = wp_remote_get(add_query_arg([
             'licence_key' => $key,
             'domain'      => wp_parse_url(home_url(), PHP_URL_HOST),
-        ], self::PROXY_BASE . '/licence/validate'));
+        ], ProxyClient::BASE_URL . '/licence/validate'));
 
         if (is_wp_error($response)) {
             return false;
@@ -251,7 +251,7 @@ class MetaOAuth {
      * @param int    $expires_in Seconds until the token expires.
      */
     private function storeAccessToken(string $token, int $expires_in): void {
-        update_option('scps_meta_access_token', $this->encrypt($token));
+        update_option('scps_meta_access_token', $this->encryption->encrypt($token));
         update_option('scps_meta_token_expires_at', time() + $expires_in);
     }
 
@@ -265,7 +265,7 @@ class MetaOAuth {
         if (!$encrypted) {
             return null;
         }
-        $token = $this->decrypt($encrypted);
+        $token = $this->encryption->decrypt($encrypted);
         return $token ?: null;
     }
 
@@ -275,7 +275,7 @@ class MetaOAuth {
      * @param string $key Plain-text licence key.
      */
     public function storeLicenceKey(string $key): void {
-        update_option('scps_licence_key', $this->encrypt($key));
+        update_option('scps_licence_key', $this->encryption->encrypt($key));
     }
 
     /**
@@ -288,7 +288,7 @@ class MetaOAuth {
         if (!$encrypted) {
             return '';
         }
-        return $this->decrypt($encrypted) ?: '';
+        return $this->encryption->decrypt($encrypted) ?: '';
     }
 
     /**
@@ -301,51 +301,25 @@ class MetaOAuth {
     }
 
     // -------------------------------------------------------------------------
-    // Proxy Health
+    // Proxy Health — delegated to ProxyClient
     // -------------------------------------------------------------------------
 
     /**
      * Probe the proxy server and cache the result for 5 minutes.
      *
-     * Called at most once every 5 minutes (via transient) to avoid blocking
-     * every admin page load. Returns true immediately if the cached result
-     * is healthy.
-     *
-     * @return bool True if the proxy responded with HTTP 200, false otherwise.
+     * @return bool True if the proxy responded with HTTP 200.
      */
     public function checkProxyHealth(): bool {
-        $cached = get_transient('scps_proxy_health');
-        if ($cached !== false) {
-            return (bool) $cached;
-        }
-
-        $response = wp_remote_get(self::PROXY_BASE . '/health', [
-            'timeout'   => 5,
-            'sslverify' => true,
-        ]);
-
-        $healthy = !is_wp_error($response)
-            && wp_remote_retrieve_response_code($response) === 200;
-
-        set_transient('scps_proxy_health', (int) $healthy, 5 * MINUTE_IN_SECONDS);
-
-        return $healthy;
+        return $this->proxy->checkHealth();
     }
 
     /**
      * Return the cached proxy health status without making a new HTTP request.
      *
-     * If no cached value exists yet, triggers a fresh check.
-     *
      * @return bool True if the proxy is (or was recently) reachable.
      */
     public function isProxyReachable(): bool {
-        $cached = get_transient('scps_proxy_health');
-        if ($cached !== false) {
-            return (bool) $cached;
-        }
-
-        return $this->checkProxyHealth();
+        return $this->proxy->isReachable();
     }
 
     // -------------------------------------------------------------------------
@@ -432,74 +406,28 @@ class MetaOAuth {
     }
 
     // -------------------------------------------------------------------------
-    // Encryption Helpers
+    // Encryption passthrough — kept for backward compatibility with TokenStorage
     // -------------------------------------------------------------------------
 
     /**
-     * Encrypt a string using AES-256-CBC with the WordPress AUTH_KEY as the key.
+     * Encrypt a value. Delegates to Helpers\Encryption.
      *
      * @param string $value Plain-text value.
      *
-     * @return string Base64-encoded ciphertext (iv:ciphertext).
+     * @return string Encrypted value.
      */
     public function encrypt(string $value): string {
-        if (empty($value)) {
-            return '';
-        }
-
-        $key    = $this->getEncryptionKey();
-        $iv_len = openssl_cipher_iv_length(self::CIPHER);
-        $iv     = openssl_random_pseudo_bytes($iv_len);
-
-        $encrypted = openssl_encrypt($value, self::CIPHER, $key, OPENSSL_RAW_DATA, $iv);
-        if (false === $encrypted) {
-            return base64_encode($value);
-        }
-
-        return base64_encode($iv . $encrypted);
+        return $this->encryption->encrypt($value);
     }
 
     /**
-     * Decrypt a string that was encrypted with encrypt().
+     * Decrypt a value. Delegates to Helpers\Encryption.
      *
-     * @param string $encrypted Base64-encoded ciphertext (iv:ciphertext).
+     * @param string $encrypted Encrypted value.
      *
      * @return string|false Plain-text value, or false on failure.
      */
     public function decrypt(string $encrypted): string|false {
-        if (empty($encrypted)) {
-            return false;
-        }
-
-        $key     = $this->getEncryptionKey();
-        $decoded = base64_decode($encrypted, true);
-        if (false === $decoded) {
-            return false;
-        }
-
-        $iv_len = openssl_cipher_iv_length(self::CIPHER);
-        $iv     = substr($decoded, 0, $iv_len);
-        $data   = substr($decoded, $iv_len);
-
-        $decrypted = openssl_decrypt($data, self::CIPHER, $key, OPENSSL_RAW_DATA, $iv);
-        return $decrypted;
-    }
-
-    /**
-     * Derive a 32-byte encryption key from the WordPress AUTH_KEY constant.
-     *
-     * @throws \RuntimeException If AUTH_KEY is not defined in wp-config.php.
-     *
-     * @return string 32-byte key.
-     */
-    private function getEncryptionKey(): string {
-        if (!defined('AUTH_KEY') || AUTH_KEY === '') {
-            throw new \RuntimeException(
-                '[SCPS] AUTH_KEY is not defined in wp-config.php. Cannot encrypt/decrypt sensitive data.'
-            );
-        }
-
-        $salt = (defined('SCPS_ENCRYPTION_SALT') && SCPS_ENCRYPTION_SALT !== '') ? SCPS_ENCRYPTION_SALT : '';
-        return substr(hash('sha256', AUTH_KEY . $salt, true), 0, 32);
+        return $this->encryption->decrypt($encrypted);
     }
 }
