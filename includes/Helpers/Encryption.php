@@ -39,7 +39,9 @@ class Encryption {
 
         $encrypted = openssl_encrypt($value, self::CIPHER, $key, OPENSSL_RAW_DATA, $iv);
         if (false === $encrypted) {
-            return base64_encode($value);
+            throw new \RuntimeException(
+                '[SCPS] openssl_encrypt() failed. Check that the OpenSSL extension is properly installed and AES-256-CBC is supported.'
+            );
         }
 
         return base64_encode($iv . $encrypted);
