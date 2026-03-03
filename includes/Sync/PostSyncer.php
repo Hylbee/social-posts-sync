@@ -315,6 +315,7 @@ class PostSyncer {
             curl_close($ch);
 
             if ($curl_error !== 0 || $http_code < 200 || $http_code >= 300) {
+                error_log(sprintf('[SCPS] Media sideload failed for %s — curl_errno=%d http_code=%d', $url, $curl_error, $http_code));
                 @unlink($tmp); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
                 continue;
             }
@@ -349,6 +350,7 @@ class PostSyncer {
 
         // media_handle_sideload moves the temp file; clean up only on error
         if (is_wp_error($attachment_id)) {
+            error_log(sprintf('[SCPS] media_handle_sideload failed for %s — %s', $source_url, $attachment_id->get_error_message()));
             @unlink($tmp_path); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
             return null;
         }
@@ -381,6 +383,7 @@ class PostSyncer {
             remove_filter('http_request_timeout', $timeout_cb, 99);
 
             if (is_wp_error($attachment_id)) {
+                error_log(sprintf('[SCPS] media_sideload_image failed for %s — %s', $url, $attachment_id->get_error_message()));
                 continue;
             }
 
