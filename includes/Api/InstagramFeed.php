@@ -3,7 +3,8 @@
  * Instagram Feed Fetcher
  *
  * Retrieves media from Instagram Business accounts linked to Facebook Pages
- * via the Meta Graph API and normalizes them into the common social post shape.
+ * via the Meta Graph API.
+ * Post normalization is delegated to Helpers\InstagramPostNormalizer.
  *
  * @package SocialPostsSync\Api
  */
@@ -13,6 +14,8 @@ declare(strict_types=1);
 namespace SocialPostsSync\Api;
 
 defined('ABSPATH') || exit;
+
+use SocialPostsSync\Helpers\InstagramPostNormalizer;
 
 /**
  * Fetches and normalizes Instagram Business account media.
@@ -25,25 +28,22 @@ class InstagramFeed implements FeedInterface {
     private const MEDIA_FIELDS = 'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,username';
 
     /**
-     * Fields to request for children of a CAROUSEL_ALBUM.
-     */
-    private const CHILDREN_FIELDS = 'media_url,media_type';
-
-    /**
      * Fields to request via Business Discovery for third-party media.
      */
     private const DISCOVERY_MEDIA_FIELDS = 'id,media_type,media_url,thumbnail_url,permalink,timestamp,caption,like_count,comments_count,children{media_url,media_type}';
 
-    private MetaApiClient $client;
+    private MetaApiClient          $client;
+    private InstagramPostNormalizer $normalizer;
 
-    public function __construct(MetaApiClient $client) {
-        $this->client = $client;
+    public function __construct(MetaApiClient $client, ?InstagramPostNormalizer $normalizer = null) {
+        $this->client     = $client;
+        $this->normalizer = $normalizer ?? new InstagramPostNormalizer($client);
     }
 
     /**
      * Get the authenticated user's own Instagram Business Account ID.
      *
-     * Result is cached in the 'scps_ig_business_id' option to avoid repeated API calls.
+     * Result is cached in the 'scps_ig_business_id' option.
      *
      * @return string Instagram Business Account ID.
      *
@@ -77,7 +77,7 @@ class InstagramFeed implements FeedInterface {
      *
      * @param string $username Target Instagram username (without @).
      *
-     * @return array Associative array with 'id' (= username), 'username', 'name', 'avatar'.
+     * @return array Associative array with 'id', 'username', 'name', 'avatar'.
      *
      * @throws \RuntimeException If no IG Business Account is available.
      * @throws MetaApiException  If the target account is inaccessible.
@@ -138,7 +138,7 @@ class InstagramFeed implements FeedInterface {
 
         $posts = [];
         foreach (($discovery['media']['data'] ?? []) as $raw) {
-            $posts[] = $this->normalize($raw, $account_info);
+            $posts[] = $this->normalizer->normalize($raw, $account_info);
         }
 
         return $posts;
@@ -173,16 +173,13 @@ class InstagramFeed implements FeedInterface {
     }
 
     /**
-     * Retrieve all Instagram Business accounts linked to a given Facebook Page.
-     *
-     * @param string $pageId Facebook Page ID.
+     * Retrieve all Instagram Business accounts linked to managed Facebook Pages.
      *
      * @return array Array of IG account objects, each with 'id', 'name', 'username'.
      *
      * @throws MetaApiException On API error.
      */
-    public function getAccounts(string $pageId = 'me'): array {
-        // Fetch IG accounts linked to pages the user manages
+    public function getAccounts(): array {
         $pages_data = $this->client->get('/me/accounts', [
             'fields' => 'id,name,instagram_business_account{id,name,username,profile_picture_url}',
         ]);
@@ -222,7 +219,7 @@ class InstagramFeed implements FeedInterface {
 
         $posts = [];
         foreach (($data['data'] ?? []) as $raw) {
-            $posts[] = $this->normalize($raw, $account_info);
+            $posts[] = $this->normalizer->normalize($raw, $account_info);
         }
 
         return $posts;
@@ -254,7 +251,7 @@ class InstagramFeed implements FeedInterface {
 
         $posts = [];
         foreach (($data['data'] ?? []) as $raw) {
-            $posts[] = $this->normalize($raw, $account_info);
+            $posts[] = $this->normalizer->normalize($raw, $account_info);
         }
 
         return $posts;
@@ -278,95 +275,8 @@ class InstagramFeed implements FeedInterface {
                 'avatar'   => (string) ($data['profile_picture_url'] ?? ''),
             ];
         } catch (\Throwable $e) {
-            unset($e); // Silently fail — account info is non-critical, sync continues
+            unset($e);
             return ['name' => '', 'username' => '', 'avatar' => ''];
         }
-    }
-
-    /**
-     * Fetch children media URLs for a CAROUSEL_ALBUM post.
-     *
-     * @param string $mediaId Instagram media ID.
-     *
-     * @return array Array of media URL strings.
-     */
-    private function fetchCarouselChildren(string $mediaId): array {
-        try {
-            $data = $this->client->get("/{$mediaId}/children", [
-                'fields' => self::CHILDREN_FIELDS,
-            ]);
-        } catch (\Throwable $e) {
-            unset($e); // Silently fail — carousel children are non-critical
-            return [];
-        }
-
-        $urls = [];
-        foreach (($data['data'] ?? []) as $child) {
-            $url = $child['media_url'] ?? null;
-            if ($url) {
-                $urls[] = (string) $url;
-            }
-        }
-
-        return $urls;
-    }
-
-    /**
-     * Normalize a raw Instagram media object into the common social post shape.
-     *
-     * @param array $raw          Raw API media object.
-     * @param array $account_info Account name and avatar.
-     *
-     * @return array Normalized post.
-     */
-    private function normalize(array $raw, array $account_info): array {
-        $media_type = (string) ($raw['media_type'] ?? '');
-        $media_urls = [];
-        $video_url  = '';
-
-        if ('CAROUSEL_ALBUM' === $media_type) {
-            $media_urls = $this->fetchCarouselChildren((string) ($raw['id'] ?? ''));
-        } elseif ('VIDEO' === $media_type) {
-            // Store video URL separately — do not sideload into media library
-            $video_url = (string) ($raw['media_url'] ?? '');
-            // Use thumbnail as the representative image for the post
-            if (!empty($raw['thumbnail_url'])) {
-                $media_urls[] = (string) $raw['thumbnail_url'];
-            }
-        } elseif (!empty($raw['media_url'])) {
-            $media_urls[] = (string) $raw['media_url'];
-        }
-
-        $published_at = '';
-        if (!empty($raw['timestamp'])) {
-            try {
-                $dt = new \DateTimeImmutable($raw['timestamp']);
-                $published_at = $dt->format(\DateTimeInterface::ATOM);
-            } catch (\Throwable) {
-                $published_at = $raw['timestamp'];
-            }
-        }
-
-        $normalized = [
-            'platform'      => 'instagram',
-            'source_id'     => (string) ($raw['id']         ?? ''),
-            'content'       => (string) ($raw['caption']    ?? ''),
-            'permalink'     => (string) ($raw['permalink']  ?? ''),
-            'published_at'  => $published_at,
-            'media_urls'    => $media_urls,
-            'video_url'     => $video_url,
-            'author_name'   => $account_info['name'],
-            'author_avatar' => $account_info['avatar'],
-            'likes_count'   => (int) ($raw['like_count']   ?? 0),
-            'raw'           => $raw,
-        ];
-
-        /**
-         * Filter the normalized Instagram post before it is saved.
-         *
-         * @param array $normalized Normalized post data.
-         * @param array $raw        Original raw API data.
-         */
-        return apply_filters('scps_normalize_post', $normalized, $raw);
     }
 }
