@@ -498,6 +498,8 @@ class MetaOAuth {
                 '[SCPS] AUTH_KEY is not defined in wp-config.php. Cannot encrypt/decrypt sensitive data.'
             );
         }
-        return substr(hash('sha256', AUTH_KEY, true), 0, 32);
+
+        $salt = (defined('SCPS_ENCRYPTION_SALT') && SCPS_ENCRYPTION_SALT !== '') ? SCPS_ENCRYPTION_SALT : '';
+        return substr(hash('sha256', AUTH_KEY . $salt, true), 0, 32);
     }
 }
