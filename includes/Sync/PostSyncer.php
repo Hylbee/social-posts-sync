@@ -178,10 +178,11 @@ class PostSyncer {
     /**
      * Sideload an array of image/video URLs into the WordPress Media Library.
      *
-     * Returns an array of attachment IDs for successfully sideloaded media.
-     * Already-sideloaded media (detected by source URL meta) is skipped to prevent duplicates.
+     * Already-sideloaded media (detected by source URL meta) is reused to prevent
+     * duplicates. New URLs are downloaded in parallel via curl_multi when available,
+     * falling back to sequential sideloading otherwise.
      *
-     * @param int      $post_id   Parent post ID.
+     * @param int      $post_id    Parent post ID.
      * @param string[] $media_urls Array of remote media URLs.
      *
      * @return int[] Array of WP Media Library attachment IDs.
@@ -197,42 +198,176 @@ class PostSyncer {
         require_once ABSPATH . 'wp-admin/includes/image.php';
 
         $attachment_ids = [];
+        $to_download    = [];
 
-        foreach ($media_urls as $url) {
-            $url = esc_url_raw((string) $url);
+        // First pass: resolve already-sideloaded URLs, collect new ones
+        foreach ($media_urls as $raw_url) {
+            $url = esc_url_raw((string) $raw_url);
             if (!$url) {
                 continue;
             }
 
-            // Return existing attachment if already sideloaded
             $existing_id = $this->findAttachmentBySourceUrl($url);
             if ($existing_id) {
                 $attachment_ids[] = $existing_id;
+            } else {
+                $to_download[] = $url;
+            }
+        }
+
+        if (empty($to_download)) {
+            return $attachment_ids;
+        }
+
+        // Second pass: download new URLs — parallel when curl_multi is available
+        $sideload_timeout = (int) get_option('scps_sideload_timeout', 30);
+
+        if (function_exists('curl_multi_init') && count($to_download) > 1) {
+            $new_ids = $this->sideloadBatch($post_id, $to_download, $sideload_timeout);
+        } else {
+            $new_ids = $this->sideloadSequential($post_id, $to_download, $sideload_timeout);
+        }
+
+        return array_merge($attachment_ids, $new_ids);
+    }
+
+    /**
+     * Download multiple media URLs in parallel using curl_multi, then register
+     * each successful download as a WordPress attachment.
+     *
+     * @param int      $post_id  Parent post ID.
+     * @param string[] $urls     URLs to download (all new, not yet in media library).
+     * @param int      $timeout  Per-request timeout in seconds.
+     *
+     * @return int[] Attachment IDs for successfully sideloaded media.
+     */
+    private function sideloadBatch(int $post_id, array $urls, int $timeout): array {
+        $multi   = curl_multi_init();
+        $handles = [];
+        $tmpfiles = [];
+
+        foreach ($urls as $i => $url) {
+            $tmp = wp_tempnam($url);
+            if (!$tmp) {
                 continue;
             }
 
-            // Sideload — returns attachment ID (int) on success
-            $sideload_timeout = (int) get_option('scps_sideload_timeout', 30);
-            $timeout_cb = static fn() => $sideload_timeout;
+            $fh = fopen($tmp, 'wb'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+            if (!$fh) {
+                @unlink($tmp); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+                continue;
+            }
+
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_FILE           => $fh,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_MAXREDIRS      => 5,
+                CURLOPT_TIMEOUT        => $timeout,
+                CURLOPT_USERAGENT      => 'SocialPostsSync/' . SCPS_VERSION . ' WordPress/' . get_bloginfo('version'),
+                CURLOPT_SSL_VERIFYPEER => true,
+            ]);
+
+            curl_multi_add_handle($multi, $ch);
+            $handles[$i] = ['ch' => $ch, 'fh' => $fh, 'tmp' => $tmp, 'url' => $url];
+        }
+
+        // Execute all handles in parallel
+        do {
+            $status = curl_multi_exec($multi, $still_running);
+            if ($still_running) {
+                curl_multi_select($multi);
+            }
+        } while ($still_running && $status === CURLM_OK);
+
+        $attachment_ids = [];
+
+        foreach ($handles as $item) {
+            $ch  = $item['ch'];
+            $fh  = $item['fh'];
+            $tmp = $item['tmp'];
+            $url = $item['url'];
+
+            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curl_error = curl_errno($ch);
+
+            fclose($fh); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+            curl_multi_remove_handle($multi, $ch);
+            curl_close($ch);
+
+            if ($curl_error !== 0 || $http_code < 200 || $http_code >= 300) {
+                @unlink($tmp); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+                continue;
+            }
+
+            $attachment_id = $this->registerTempFileAsAttachment($tmp, $url, $post_id);
+            if ($attachment_id) {
+                $attachment_ids[] = $attachment_id;
+            }
+        }
+
+        curl_multi_close($multi);
+
+        return $attachment_ids;
+    }
+
+    /**
+     * Register a temp file downloaded via curl as a WordPress media attachment.
+     *
+     * @param string $tmp_path  Path to the temp file on disk.
+     * @param string $source_url Original remote URL (used for mime detection and deduplication meta).
+     * @param int    $post_id   Parent post ID.
+     *
+     * @return int|null Attachment ID on success, null on failure.
+     */
+    private function registerTempFileAsAttachment(string $tmp_path, string $source_url, int $post_id): ?int {
+        $file_array = [
+            'name'     => basename(parse_url($source_url, PHP_URL_PATH) ?: $source_url),
+            'tmp_name' => $tmp_path,
+        ];
+
+        $attachment_id = media_handle_sideload($file_array, $post_id);
+
+        // media_handle_sideload moves the temp file; clean up only on error
+        if (is_wp_error($attachment_id)) {
+            @unlink($tmp_path); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+            return null;
+        }
+
+        $attachment_id = (int) $attachment_id;
+
+        update_post_meta($attachment_id, '_scps_source_url', $source_url);
+        wp_update_post(['ID' => $attachment_id, 'post_parent' => $post_id]);
+
+        return $attachment_id;
+    }
+
+    /**
+     * Sideload URLs one by one (fallback when curl_multi is unavailable or only
+     * one URL needs downloading).
+     *
+     * @param int      $post_id  Parent post ID.
+     * @param string[] $urls     URLs to download.
+     * @param int      $timeout  Per-request timeout in seconds.
+     *
+     * @return int[] Attachment IDs for successfully sideloaded media.
+     */
+    private function sideloadSequential(int $post_id, array $urls, int $timeout): array {
+        $attachment_ids = [];
+        $timeout_cb     = static fn() => $timeout;
+
+        foreach ($urls as $url) {
             add_filter('http_request_timeout', $timeout_cb, 99);
             $attachment_id = media_sideload_image($url, $post_id, '', 'id');
             remove_filter('http_request_timeout', $timeout_cb, 99);
 
             if (is_wp_error($attachment_id)) {
-                // Media sideload failed — skip this URL silently in production
                 continue;
             }
 
             $attachment_id = (int) $attachment_id;
-
-            // Store source URL for deduplication on future syncs
             update_post_meta($attachment_id, '_scps_source_url', $url);
-
-            // Ensure the attachment is attached to the parent post
-            wp_update_post([
-                'ID'          => $attachment_id,
-                'post_parent' => $post_id,
-            ]);
+            wp_update_post(['ID' => $attachment_id, 'post_parent' => $post_id]);
 
             $attachment_ids[] = $attachment_id;
         }
