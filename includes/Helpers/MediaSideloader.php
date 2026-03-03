@@ -215,7 +215,7 @@ class MediaSideloader {
             'post_type'      => 'attachment',
             'post_status'    => 'inherit',
             'posts_per_page' => 1,
-            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- covered by scps_meta_key_value index (meta_key, meta_value) created on activation
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- lookup by unique meta_key (_scps_source_url) covered by WordPress native postmeta index on meta_key
             'meta_query'     => [
                 [
                     'key'   => '_scps_source_url',
