@@ -15,6 +15,7 @@ namespace SocialPostsSync\Api;
 defined('ABSPATH') || exit;
 
 use SocialPostsSync\Auth\MetaOAuth;
+use SocialPostsSync\Auth\TokenStorage;
 
 /**
  * Fetches and normalizes Facebook Page posts.
@@ -31,17 +32,29 @@ class FacebookFeed {
      */
     private const PAGE_FIELDS = 'id,name,picture{url}';
 
+    /**
+     * Option key used to persist encrypted page tokens.
+     */
+    private const PAGE_TOKENS_OPTION = 'scps_page_tokens';
+
     private MetaApiClient $client;
+    private TokenStorage  $tokenStorage;
 
     /**
-     * Cache of page access tokens keyed by page ID.
+     * In-memory cache of page access tokens keyed by page ID.
      *
      * @var array<string, string>
      */
     private array $page_tokens = [];
 
-    public function __construct(MetaApiClient $client) {
-        $this->client = $client;
+    /**
+     * @param MetaApiClient    $client       Authenticated Graph API client.
+     * @param TokenStorage|null $tokenStorage Token storage abstraction. Defaults to a
+     *                                        storage backed by MetaOAuth encryption.
+     */
+    public function __construct(MetaApiClient $client, ?TokenStorage $tokenStorage = null) {
+        $this->client       = $client;
+        $this->tokenStorage = $tokenStorage ?? new TokenStorage(new MetaOAuth());
     }
 
     /**
@@ -57,15 +70,16 @@ class FacebookFeed {
         $pages = $data['data'] ?? [];
 
         // Cache page tokens — stored encrypted to protect sensitive credentials
-        $oauth         = new MetaOAuth();
-        $stored_tokens = (array) get_option('scps_page_tokens', []);
+        $new_tokens = [];
         foreach ($pages as $page) {
             if (!empty($page['id']) && !empty($page['access_token'])) {
                 $this->page_tokens[$page['id']] = $page['access_token'];
-                $stored_tokens[$page['id']]      = $oauth->encrypt($page['access_token']);
+                $new_tokens[$page['id']]        = $page['access_token'];
             }
         }
-        update_option('scps_page_tokens', $stored_tokens);
+        if ($new_tokens) {
+            $this->tokenStorage->setAll(self::PAGE_TOKENS_OPTION, $new_tokens);
+        }
 
         return $pages;
     }
@@ -84,10 +98,8 @@ class FacebookFeed {
 
         // Then try WP option (persisted from previous getPages() call) — decrypt on read
         if (!$token) {
-            $oauth         = new MetaOAuth();
-            $stored_tokens = (array) get_option('scps_page_tokens', []);
-            $encrypted     = (string) ($stored_tokens[$pageId] ?? '');
-            $token         = $encrypted ? ($oauth->decrypt($encrypted) ?: '') : '';
+            $all   = $this->tokenStorage->getAll(self::PAGE_TOKENS_OPTION);
+            $token = $all[$pageId] ?? '';
         }
 
         if ($token) {
@@ -99,12 +111,9 @@ class FacebookFeed {
             $data = $this->client->get('/me/accounts', ['fields' => 'id,access_token']);
             foreach (($data['data'] ?? []) as $page) {
                 if ((string) $page['id'] === $pageId && !empty($page['access_token'])) {
-                    $token                              = $page['access_token'];
-                    $this->page_tokens[$pageId]         = $token;
-                    $oauth                              = new MetaOAuth();
-                    $stored_tokens                      = (array) get_option('scps_page_tokens', []);
-                    $stored_tokens[$pageId]             = $oauth->encrypt($token);
-                    update_option('scps_page_tokens', $stored_tokens);
+                    $token                      = $page['access_token'];
+                    $this->page_tokens[$pageId] = $token;
+                    $this->tokenStorage->setAll(self::PAGE_TOKENS_OPTION, [$pageId => $token]);
                     return new MetaApiClient($token);
                 }
             }
