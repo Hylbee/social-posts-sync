@@ -3,7 +3,8 @@
  * Post Syncer
  *
  * Transforms normalized social API posts into WordPress social_post CPT entries.
- * Handles create-or-update logic, media sideloading, and meta field storage.
+ * Handles create-or-update logic, meta field storage, and taxonomy assignment.
+ * Media sideloading is delegated to Helpers\MediaSideloader.
  *
  * @package SocialPostsSync\Sync
  */
@@ -15,11 +16,18 @@ namespace SocialPostsSync\Sync;
 defined('ABSPATH') || exit;
 
 use SocialPostsSync\CPT\SocialPostCPT;
+use SocialPostsSync\Helpers\MediaSideloader;
 
 /**
  * Syncs normalized social posts to the WordPress social_post CPT.
  */
 class PostSyncer {
+
+    private MediaSideloader $sideloader;
+
+    public function __construct(?MediaSideloader $sideloader = null) {
+        $this->sideloader = $sideloader ?? new MediaSideloader();
+    }
 
     /**
      * Sync a normalized social post to WordPress.
@@ -83,24 +91,19 @@ class PostSyncer {
     /**
      * Sideload media for a post and set featured image + gallery meta.
      *
-     * Must be called after the post exists in the database so attachments
-     * can be parented to it.
-     *
      * @param int   $post_id         Post ID.
      * @param array $normalized_post Normalized post data.
      */
     private function handleMedia(int $post_id, array $normalized_post): void {
-        $attachment_ids = $this->sideloadMedia($post_id, $normalized_post['media_urls'] ?? []);
+        $attachment_ids = $this->sideloader->sideload($post_id, $normalized_post['media_urls'] ?? []);
         update_post_meta($post_id, SocialPostCPT::META_MEDIA_IDS, wp_json_encode($attachment_ids));
 
         if (empty($attachment_ids)) {
             return;
         }
 
-        // First image → featured image
         set_post_thumbnail($post_id, $attachment_ids[0]);
 
-        // Remaining images → gallery (exclude the featured image to avoid duplication)
         $gallery_ids = count($attachment_ids) > 1 ? array_slice($attachment_ids, 1) : [];
         update_post_meta($post_id, SocialPostCPT::META_GALLERY_IDS, implode(',', $gallery_ids));
     }
@@ -177,16 +180,16 @@ class PostSyncer {
      * @param array $data    Normalized post data.
      */
     private function saveMeta(int $post_id, array $data): void {
-        update_post_meta($post_id, SocialPostCPT::META_PLATFORM,     sanitize_text_field($data['platform']      ?? ''));
-        update_post_meta($post_id, SocialPostCPT::META_SOURCE_ID,    sanitize_text_field($data['source_id']     ?? ''));
-        update_post_meta($post_id, SocialPostCPT::META_CONTENT,      sanitize_textarea_field($data['content']   ?? ''));
-        update_post_meta($post_id, SocialPostCPT::META_PERMALINK,    esc_url_raw($data['permalink']             ?? ''));
-        update_post_meta($post_id, SocialPostCPT::META_PUBLISHED_AT, sanitize_text_field($data['published_at']  ?? ''));
-        update_post_meta($post_id, SocialPostCPT::META_MEDIA_URLS,   wp_json_encode($data['media_urls']         ?? []));
-        update_post_meta($post_id, SocialPostCPT::META_VIDEO_URL,    esc_url_raw($data['video_url']             ?? ''));
-        update_post_meta($post_id, SocialPostCPT::META_AUTHOR_NAME,  sanitize_text_field($data['author_name']   ?? ''));
+        update_post_meta($post_id, SocialPostCPT::META_PLATFORM,      sanitize_text_field($data['platform']      ?? ''));
+        update_post_meta($post_id, SocialPostCPT::META_SOURCE_ID,     sanitize_text_field($data['source_id']     ?? ''));
+        update_post_meta($post_id, SocialPostCPT::META_CONTENT,       sanitize_textarea_field($data['content']   ?? ''));
+        update_post_meta($post_id, SocialPostCPT::META_PERMALINK,     esc_url_raw($data['permalink']             ?? ''));
+        update_post_meta($post_id, SocialPostCPT::META_PUBLISHED_AT,  sanitize_text_field($data['published_at']  ?? ''));
+        update_post_meta($post_id, SocialPostCPT::META_MEDIA_URLS,    wp_json_encode($data['media_urls']         ?? []));
+        update_post_meta($post_id, SocialPostCPT::META_VIDEO_URL,     esc_url_raw($data['video_url']             ?? ''));
+        update_post_meta($post_id, SocialPostCPT::META_AUTHOR_NAME,   sanitize_text_field($data['author_name']   ?? ''));
         update_post_meta($post_id, SocialPostCPT::META_AUTHOR_AVATAR, esc_url_raw($data['author_avatar']        ?? ''));
-        update_post_meta($post_id, SocialPostCPT::META_LIKES_COUNT,  absint($data['likes_count']                ?? 0));
+        update_post_meta($post_id, SocialPostCPT::META_LIKES_COUNT,   absint($data['likes_count']                ?? 0));
 
         if (get_option('scps_store_raw_data', false)) {
             update_post_meta($post_id, SocialPostCPT::META_RAW_DATA, wp_json_encode($data['raw'] ?? []));
@@ -194,256 +197,17 @@ class PostSyncer {
     }
 
     // -------------------------------------------------------------------------
-    // Media Sideloading
-    // -------------------------------------------------------------------------
-
-    /**
-     * Sideload an array of image/video URLs into the WordPress Media Library.
-     *
-     * Already-sideloaded media (detected by source URL meta) is reused to prevent
-     * duplicates. New URLs are downloaded in parallel via curl_multi when available,
-     * falling back to sequential sideloading otherwise.
-     *
-     * @param int      $post_id    Parent post ID.
-     * @param string[] $media_urls Array of remote media URLs.
-     *
-     * @return int[] Array of WP Media Library attachment IDs.
-     */
-    private function sideloadMedia(int $post_id, array $media_urls): array {
-        if (empty($media_urls)) {
-            return [];
-        }
-
-        // Always load admin media helpers — required in cron context too
-        require_once ABSPATH . 'wp-admin/includes/media.php';
-        require_once ABSPATH . 'wp-admin/includes/file.php';
-        require_once ABSPATH . 'wp-admin/includes/image.php';
-
-        $attachment_ids = [];
-        $to_download    = [];
-
-        // First pass: resolve already-sideloaded URLs, collect new ones
-        foreach ($media_urls as $raw_url) {
-            $url = esc_url_raw((string) $raw_url);
-            if (!$url) {
-                continue;
-            }
-
-            $existing_id = $this->findAttachmentBySourceUrl($url);
-            if ($existing_id) {
-                $attachment_ids[] = $existing_id;
-            } else {
-                $to_download[] = $url;
-            }
-        }
-
-        if (empty($to_download)) {
-            return $attachment_ids;
-        }
-
-        // Second pass: download new URLs — parallel when curl_multi is available
-        $sideload_timeout = (int) get_option('scps_sideload_timeout', 30);
-
-        if (function_exists('curl_multi_init') && count($to_download) > 1) {
-            $new_ids = $this->sideloadBatch($post_id, $to_download, $sideload_timeout);
-        } else {
-            $new_ids = $this->sideloadSequential($post_id, $to_download, $sideload_timeout);
-        }
-
-        return array_merge($attachment_ids, $new_ids);
-    }
-
-    /**
-     * Download multiple media URLs in parallel using curl_multi, then register
-     * each successful download as a WordPress attachment.
-     *
-     * @param int      $post_id  Parent post ID.
-     * @param string[] $urls     URLs to download (all new, not yet in media library).
-     * @param int      $timeout  Per-request timeout in seconds.
-     *
-     * @return int[] Attachment IDs for successfully sideloaded media.
-     */
-    private function sideloadBatch(int $post_id, array $urls, int $timeout): array {
-        $multi   = curl_multi_init();
-        $handles = [];
-        $tmpfiles = [];
-
-        foreach ($urls as $i => $url) {
-            $tmp = wp_tempnam($url);
-            if (!$tmp) {
-                continue;
-            }
-
-            $fh = fopen($tmp, 'wb'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
-            if (!$fh) {
-                @unlink($tmp); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-                continue;
-            }
-
-            $ch = curl_init($url);
-            curl_setopt_array($ch, [
-                CURLOPT_FILE           => $fh,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_MAXREDIRS      => 5,
-                CURLOPT_TIMEOUT        => $timeout,
-                CURLOPT_USERAGENT      => 'SocialPostsSync/' . SCPS_VERSION . ' WordPress/' . get_bloginfo('version'),
-                CURLOPT_SSL_VERIFYPEER => true,
-            ]);
-
-            curl_multi_add_handle($multi, $ch);
-            $handles[$i] = ['ch' => $ch, 'fh' => $fh, 'tmp' => $tmp, 'url' => $url];
-        }
-
-        // Execute all handles in parallel
-        do {
-            $status = curl_multi_exec($multi, $still_running);
-            if ($still_running) {
-                curl_multi_select($multi);
-            }
-        } while ($still_running && $status === CURLM_OK);
-
-        $attachment_ids = [];
-
-        foreach ($handles as $item) {
-            $ch  = $item['ch'];
-            $fh  = $item['fh'];
-            $tmp = $item['tmp'];
-            $url = $item['url'];
-
-            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $curl_error = curl_errno($ch);
-
-            fclose($fh); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
-            curl_multi_remove_handle($multi, $ch);
-            curl_close($ch);
-
-            if ($curl_error !== 0 || $http_code < 200 || $http_code >= 300) {
-                error_log(sprintf('[SCPS] Media sideload failed for %s — curl_errno=%d http_code=%d', $url, $curl_error, $http_code));
-                @unlink($tmp); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-                continue;
-            }
-
-            $attachment_id = $this->registerTempFileAsAttachment($tmp, $url, $post_id);
-            if ($attachment_id) {
-                $attachment_ids[] = $attachment_id;
-            }
-        }
-
-        curl_multi_close($multi);
-
-        return $attachment_ids;
-    }
-
-    /**
-     * Register a temp file downloaded via curl as a WordPress media attachment.
-     *
-     * @param string $tmp_path  Path to the temp file on disk.
-     * @param string $source_url Original remote URL (used for mime detection and deduplication meta).
-     * @param int    $post_id   Parent post ID.
-     *
-     * @return int|null Attachment ID on success, null on failure.
-     */
-    private function registerTempFileAsAttachment(string $tmp_path, string $source_url, int $post_id): ?int {
-        $file_array = [
-            'name'     => basename(parse_url($source_url, PHP_URL_PATH) ?: $source_url),
-            'tmp_name' => $tmp_path,
-        ];
-
-        $attachment_id = media_handle_sideload($file_array, $post_id);
-
-        // media_handle_sideload moves the temp file; clean up only on error
-        if (is_wp_error($attachment_id)) {
-            error_log(sprintf('[SCPS] media_handle_sideload failed for %s — %s', $source_url, $attachment_id->get_error_message()));
-            @unlink($tmp_path); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-            return null;
-        }
-
-        $attachment_id = (int) $attachment_id;
-
-        update_post_meta($attachment_id, '_scps_source_url', $source_url);
-        wp_update_post(['ID' => $attachment_id, 'post_parent' => $post_id]);
-
-        return $attachment_id;
-    }
-
-    /**
-     * Sideload URLs one by one (fallback when curl_multi is unavailable or only
-     * one URL needs downloading).
-     *
-     * @param int      $post_id  Parent post ID.
-     * @param string[] $urls     URLs to download.
-     * @param int      $timeout  Per-request timeout in seconds.
-     *
-     * @return int[] Attachment IDs for successfully sideloaded media.
-     */
-    private function sideloadSequential(int $post_id, array $urls, int $timeout): array {
-        $attachment_ids = [];
-        $timeout_cb     = static fn() => $timeout;
-
-        foreach ($urls as $url) {
-            add_filter('http_request_timeout', $timeout_cb, 99);
-            $attachment_id = media_sideload_image($url, $post_id, '', 'id');
-            remove_filter('http_request_timeout', $timeout_cb, 99);
-
-            if (is_wp_error($attachment_id)) {
-                error_log(sprintf('[SCPS] media_sideload_image failed for %s — %s', $url, $attachment_id->get_error_message()));
-                continue;
-            }
-
-            $attachment_id = (int) $attachment_id;
-            update_post_meta($attachment_id, '_scps_source_url', $url);
-            wp_update_post(['ID' => $attachment_id, 'post_parent' => $post_id]);
-
-            $attachment_ids[] = $attachment_id;
-        }
-
-        return $attachment_ids;
-    }
-
-    /**
-     * Find an attachment by its sideloaded source URL.
-     *
-     * @param string $url Source URL.
-     *
-     * @return int|null Attachment post ID if found, null otherwise.
-     */
-    private function findAttachmentBySourceUrl(string $url): ?int {
-        $query = new \WP_Query([
-            'post_type'      => 'attachment',
-            'post_status'    => 'inherit',
-            'posts_per_page' => 1,
-            'meta_query'     => [
-                [
-                    'key'   => '_scps_source_url',
-                    'value' => $url,
-                ],
-            ],
-            'fields'         => 'ids',
-            'no_found_rows'  => true,
-        ]);
-
-        $ids = $query->posts;
-        return !empty($ids) ? (int) $ids[0] : null;
-    }
-
-    // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
 
     /**
-     * Strip non-ASCII / Unicode fancy characters that survive remove_accents():
-     * emojis, mathematical bold letters, Enclosed Alphanumerics, etc.
-     * Keeps only basic Latin + extended Latin so sanitize_title() gets clean input.
-     *
-     * Strategy: use iconv transliteration if available, then strip anything
-     * outside the Latin Unicode blocks (\x00-\x024F).
+     * Strip non-ASCII / Unicode fancy characters that survive remove_accents().
      *
      * @param string $value Raw string (UTF-8).
      *
      * @return string ASCII-safe string.
      */
     private function stripUnicode(string $value): string {
-        // Normalize unicode (NFC → NFD decomposition strips combining marks)
         if (function_exists('normalizer_normalize')) {
             $normalized = normalizer_normalize($value, \Normalizer::FORM_D);
             if ($normalized !== false) {
@@ -451,7 +215,6 @@ class PostSyncer {
             }
         }
 
-        // Transliterate to ASCII via iconv when available
         if (function_exists('iconv')) {
             $ascii = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value);
             if ($ascii !== false && $ascii !== '') {
@@ -459,16 +222,11 @@ class PostSyncer {
             }
         }
 
-        // Fallback: remove any character outside printable ASCII range
         return preg_replace('/[^\x20-\x7E]/u', '', $value) ?? $value;
     }
 
     /**
      * Split a post's content into a title (first line) and body (remaining lines).
-     *
-     * - Title  = first non-empty line of content (trimmed).
-     * - Body   = everything after the first line (trimmed), or empty string.
-     * - If content is empty, falls back to a platform + date title with empty body.
      *
      * @param array $data Normalized post data.
      *
@@ -487,12 +245,10 @@ class PostSyncer {
         }
 
         if ($content) {
-            // Split on the first newline (handles \r\n, \n, \r)
             $lines = preg_split('/\r\n|\r|\n/', $content, 2);
             $title = trim($lines[0] ?? '');
             $body  = isset($lines[1]) ? trim($lines[1]) : '';
 
-            // If the first line is somehow empty (e.g. content starts with a blank line), use full content as title
             if ($title === '') {
                 $title = mb_substr($content, 0, 80);
                 $body  = '';
@@ -501,7 +257,6 @@ class PostSyncer {
             return [$title, $body];
         }
 
-        // Fallback: no content
         if ($date) {
             /* translators: 1: Platform name (e.g. Facebook), 2: Publication date */
             $title = sprintf(__('Post %1$s du %2$s', 'social-posts-sync'), $platform, $date);
@@ -526,10 +281,9 @@ class PostSyncer {
         }
 
         try {
-            $dt = new \DateTimeImmutable($iso_date);
-            // Convert to site timezone
+            $dt       = new \DateTimeImmutable($iso_date);
             $timezone = new \DateTimeZone(wp_timezone_string());
-            $dt = $dt->setTimezone($timezone);
+            $dt       = $dt->setTimezone($timezone);
             return $dt->format('Y-m-d H:i:s');
         } catch (\Throwable) {
             return current_time('mysql');
