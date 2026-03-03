@@ -3,7 +3,7 @@
  * Plugin Name:       Social Posts Sync
  * Plugin URI:        https://github.com/Hylbee/social-posts-sync
  * Description:       Fetches posts from your social media platforms and save them as custom WordPress post types.
- * Version:           1.2.2
+ * Version:           1.3.0
  * Requires at least: 6.0
  * Requires PHP:      8.0
  * Author:            Hylbee
@@ -19,7 +19,7 @@ declare(strict_types=1);
 defined('ABSPATH') || exit;
 
 // Plugin constants
-define('SCPS_VERSION',       '1.2.2');
+define('SCPS_VERSION',       '1.3.0');
 define('SCPS_PLUGIN_FILE',   __FILE__);
 define('SCPS_PLUGIN_DIR',    plugin_dir_path(__FILE__));
 define('SCPS_PLUGIN_URL',    plugin_dir_url(__FILE__));
