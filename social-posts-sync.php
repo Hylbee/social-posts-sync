@@ -110,7 +110,7 @@ register_activation_hook(SCPS_PLUGIN_FILE, function (): void {
     // Add a partial index on postmeta to speed up _scps_source_url and _scps_source_id
     // lookups used for media deduplication and post existence checks.
     global $wpdb;
-    $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.SchemaChange
+    $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.DirectDatabaseQuery.NoCaching -- one-time DDL on activation, caching not applicable
         "CREATE INDEX IF NOT EXISTS scps_meta_key_value
          ON {$wpdb->postmeta} (meta_key(20), meta_value(100))"
     );

@@ -304,8 +304,8 @@ class SettingsPage {
 
         if (isset($_GET['scps_error'])) {
             $error = sanitize_text_field(wp_unslash($_GET['scps_error']));
-            /* translators: %s: OAuth error message returned by Meta */
             echo '<div class="notice notice-error is-dismissible"><p>';
+            /* translators: %s: OAuth error message returned by Meta */
             echo esc_html(sprintf(__('Erreur OAuth : %s', 'social-posts-sync'), $error));
             echo '</p></div>';
         }

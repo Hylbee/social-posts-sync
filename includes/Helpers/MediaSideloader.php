@@ -7,10 +7,8 @@
  * Strategy:
  *  - Already-sideloaded URLs (tracked via _scps_source_url post meta) are
  *    reused without re-downloading to prevent duplicates.
- *  - New URLs are downloaded in parallel via curl_multi when available
- *    (multiple URLs), via a single curl handle when curl is available but
- *    curl_multi is not (or for a single URL), or sequentially via
- *    media_sideload_image as last-resort fallback when curl is absent.
+ *  - New URLs are downloaded via wp_remote_get() and registered as attachments
+ *    using media_handle_sideload(). Multiple URLs are processed sequentially.
  *  - Downloaded files are validated against an allowed MIME type whitelist
  *    before being registered as WordPress attachments.
  *
@@ -78,33 +76,17 @@ class MediaSideloader {
         }
 
         $timeout = (int) get_option('scps_sideload_timeout', 30);
-
-        if (function_exists('curl_init')) {
-            if (function_exists('curl_multi_init') && count($to_download) > 1) {
-                $new_ids = $this->downloadBatch($post_id, $to_download, $timeout);
-            } else {
-                $new_ids = [];
-                foreach ($to_download as $url) {
-                    $id = $this->downloadSingle($url, $timeout, $post_id);
-                    if ($id) {
-                        $new_ids[] = $id;
-                    }
-                }
-            }
-        } else {
-            // Last resort: curl entirely unavailable, fall back to WordPress native helper.
-            $new_ids = $this->downloadSequential($post_id, $to_download, $timeout);
-        }
+        $new_ids = $this->downloadUrls($post_id, $to_download, $timeout);
 
         return array_merge($attachment_ids, $new_ids);
     }
 
     // -------------------------------------------------------------------------
-    // Private — Download strategies
+    // Private — Download strategy
     // -------------------------------------------------------------------------
 
     /**
-     * Download multiple URLs in parallel using curl_multi.
+     * Download URLs via wp_remote_get() and register each as a WordPress attachment.
      *
      * @param int      $post_id Parent post ID.
      * @param string[] $urls    URLs to download.
@@ -112,88 +94,21 @@ class MediaSideloader {
      *
      * @return int[] Attachment IDs for successfully downloaded media.
      */
-    private function downloadBatch(int $post_id, array $urls, int $timeout): array {
-        $multi   = curl_multi_init();
-        $handles = [];
-
-        foreach ($urls as $i => $url) {
-            $tmp = wp_tempnam($url);
-            if (!$tmp) {
-                continue;
-            }
-
-            $fh = fopen($tmp, 'wb'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
-            if (!$fh) {
-                @unlink($tmp); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-                continue;
-            }
-
-            $ch = curl_init($url);
-            curl_setopt_array($ch, [
-                CURLOPT_FILE           => $fh,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_MAXREDIRS      => 5,
-                CURLOPT_TIMEOUT        => $timeout,
-                CURLOPT_USERAGENT      => 'SocialPostsSync/' . SCPS_VERSION . ' WordPress/' . get_bloginfo('version'),
-                CURLOPT_SSL_VERIFYPEER => true,
-            ]);
-
-            curl_multi_add_handle($multi, $ch);
-            $handles[$i] = ['ch' => $ch, 'fh' => $fh, 'tmp' => $tmp, 'url' => $url];
-        }
-
-        do {
-            $status = curl_multi_exec($multi, $still_running);
-            if ($still_running) {
-                curl_multi_select($multi);
-            }
-        } while ($still_running && $status === CURLM_OK);
-
+    private function downloadUrls(int $post_id, array $urls, int $timeout): array {
         $attachment_ids = [];
 
-        foreach ($handles as $item) {
-            $ch  = $item['ch'];
-            $fh  = $item['fh'];
-            $tmp = $item['tmp'];
-            $url = $item['url'];
-
-            // Retrieve response info before closing the handle.
-            $http_code    = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $content_type = strtolower(strtok((string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE), ';'));
-            $curl_error   = curl_errno($ch);
-
-            fclose($fh); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
-            curl_multi_remove_handle($multi, $ch);
-            curl_close($ch);
-
-            if ($curl_error !== 0 || $http_code < 200 || $http_code >= 300) {
-                error_log(sprintf('[SCPS] Media sideload failed for %s — curl_errno=%d http_code=%d', $url, $curl_error, $http_code));
-                @unlink($tmp); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-                continue;
-            }
-
-            if (!in_array($content_type, self::ALLOWED_MIME_TYPES, true)) {
-                error_log(sprintf('[SCPS] Rejected media for %s — disallowed MIME type: %s', $url, $content_type));
-                @unlink($tmp); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-                continue;
-            }
-
-            $attachment_id = $this->registerTempFile($tmp, $url, $post_id);
-            if ($attachment_id) {
-                $attachment_ids[] = $attachment_id;
+        foreach ($urls as $url) {
+            $id = $this->downloadSingle($url, $timeout, $post_id);
+            if ($id) {
+                $attachment_ids[] = $id;
             }
         }
-
-        curl_multi_close($multi);
 
         return $attachment_ids;
     }
 
     /**
-     * Download a single URL via a plain curl handle and register it as an attachment.
-     *
-     * Used when curl_multi is unavailable or there is only one URL to fetch.
-     * Avoids the blocking overhead of media_sideload_image for each request.
+     * Download a single URL via wp_remote_get() and register it as an attachment.
      *
      * @param string $url     Remote URL to download.
      * @param int    $timeout Request timeout in seconds.
@@ -202,45 +117,50 @@ class MediaSideloader {
      * @return int|null Attachment ID on success, null on failure.
      */
     private function downloadSingle(string $url, int $timeout, int $post_id): ?int {
+        $response = wp_remote_get($url, [
+            'timeout'    => $timeout,
+            'user-agent' => 'SocialPostsSync/' . SCPS_VERSION . ' WordPress/' . get_bloginfo('version'),
+            'sslverify'  => true,
+            'redirection' => 5,
+        ]);
+
+        if (is_wp_error($response)) {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+                error_log(sprintf('[SCPS] Media download failed for %s — %s', $url, $response->get_error_message()));
+            }
+            return null;
+        }
+
+        $http_code    = (int) wp_remote_retrieve_response_code($response);
+        $content_type = strtolower(strtok((string) wp_remote_retrieve_header($response, 'content-type'), ';'));
+
+        if ($http_code < 200 || $http_code >= 300) {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+                error_log(sprintf('[SCPS] Media sideload failed for %s — HTTP %d', $url, $http_code));
+            }
+            return null;
+        }
+
+        if (!in_array($content_type, self::ALLOWED_MIME_TYPES, true)) {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+                error_log(sprintf('[SCPS] Rejected media for %s — disallowed MIME type: %s', $url, $content_type));
+            }
+            return null;
+        }
+
+        // Write response body to a temp file and register as attachment
         $tmp = wp_tempnam($url);
         if (!$tmp) {
             return null;
         }
 
-        $fh = fopen($tmp, 'wb'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
-        if (!$fh) {
-            @unlink($tmp); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-            return null;
-        }
-
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_FILE           => $fh,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_MAXREDIRS      => 5,
-            CURLOPT_TIMEOUT        => $timeout,
-            CURLOPT_USERAGENT      => 'SocialPostsSync/' . SCPS_VERSION . ' WordPress/' . get_bloginfo('version'),
-            CURLOPT_SSL_VERIFYPEER => true,
-        ]);
-
-        curl_exec($ch);
-
-        $http_code    = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $content_type = strtolower(strtok((string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE), ';'));
-        $curl_error   = curl_errno($ch);
-
-        fclose($fh); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
-        curl_close($ch);
-
-        if ($curl_error !== 0 || $http_code < 200 || $http_code >= 300) {
-            error_log(sprintf('[SCPS] Media sideload failed for %s — curl_errno=%d http_code=%d', $url, $curl_error, $http_code));
-            @unlink($tmp); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-            return null;
-        }
-
-        if (!in_array($content_type, self::ALLOWED_MIME_TYPES, true)) {
-            error_log(sprintf('[SCPS] Rejected media for %s — disallowed MIME type: %s', $url, $content_type));
-            @unlink($tmp); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+        $body = wp_remote_retrieve_body($response);
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+        if (false === file_put_contents($tmp, $body)) {
+            wp_delete_file($tmp);
             return null;
         }
 
@@ -248,51 +168,7 @@ class MediaSideloader {
     }
 
     /**
-     * Download URLs one by one via media_sideload_image (last-resort fallback).
-     *
-     * Only used when curl is entirely unavailable on the server.
-     * media_sideload_image is a blocking WordPress HTTP call (WP_HTTP, not curl),
-     * which can stall the sync for the full timeout duration per image.
-     *
-     * @param int      $post_id Parent post ID.
-     * @param string[] $urls    URLs to download.
-     * @param int      $timeout Per-request timeout in seconds.
-     *
-     * @return int[] Attachment IDs for successfully downloaded media.
-     */
-    private function downloadSequential(int $post_id, array $urls, int $timeout): array {
-        $attachment_ids = [];
-        $timeout_cb     = static fn() => $timeout;
-
-        foreach ($urls as $url) {
-            add_filter('http_request_timeout', $timeout_cb, 99);
-            $attachment_id = media_sideload_image($url, $post_id, '', 'id');
-            remove_filter('http_request_timeout', $timeout_cb, 99);
-
-            if (is_wp_error($attachment_id)) {
-                error_log(sprintf('[SCPS] media_sideload_image failed for %s — %s', $url, $attachment_id->get_error_message()));
-                continue;
-            }
-
-            $attachment_id = (int) $attachment_id;
-            $mime          = (string) get_post_mime_type($attachment_id);
-            if (!in_array($mime, self::ALLOWED_MIME_TYPES, true)) {
-                error_log(sprintf('[SCPS] Rejected media for %s — disallowed MIME type: %s', $url, $mime));
-                wp_delete_attachment($attachment_id, true);
-                continue;
-            }
-
-            update_post_meta($attachment_id, '_scps_source_url', $url);
-            wp_update_post(['ID' => $attachment_id, 'post_parent' => $post_id]);
-
-            $attachment_ids[] = $attachment_id;
-        }
-
-        return $attachment_ids;
-    }
-
-    /**
-     * Register a temp file downloaded via curl as a WordPress attachment.
+     * Register a temp file downloaded via wp_remote_get as a WordPress attachment.
      *
      * @param string $tmp_path   Path to the temp file on disk.
      * @param string $source_url Original remote URL.
@@ -302,15 +178,18 @@ class MediaSideloader {
      */
     private function registerTempFile(string $tmp_path, string $source_url, int $post_id): ?int {
         $file_array = [
-            'name'     => basename(parse_url($source_url, PHP_URL_PATH) ?: $source_url),
+            'name'     => basename(wp_parse_url($source_url, PHP_URL_PATH) ?: $source_url),
             'tmp_name' => $tmp_path,
         ];
 
         $attachment_id = media_handle_sideload($file_array, $post_id);
 
         if (is_wp_error($attachment_id)) {
-            error_log(sprintf('[SCPS] media_handle_sideload failed for %s — %s', $source_url, $attachment_id->get_error_message()));
-            @unlink($tmp_path); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+                error_log(sprintf('[SCPS] media_handle_sideload failed for %s — %s', $source_url, $attachment_id->get_error_message()));
+            }
+            wp_delete_file($tmp_path);
             return null;
         }
 
@@ -324,6 +203,9 @@ class MediaSideloader {
     /**
      * Find an existing attachment by its sideloaded source URL.
      *
+     * Uses a direct meta_key+meta_value lookup. The scps_meta_key_value index
+     * created on activation ensures this query is covered by an index.
+     *
      * @param string $url Source URL.
      *
      * @return int|null Attachment post ID if found, null otherwise.
@@ -333,6 +215,7 @@ class MediaSideloader {
             'post_type'      => 'attachment',
             'post_status'    => 'inherit',
             'posts_per_page' => 1,
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- covered by scps_meta_key_value index (meta_key, meta_value) created on activation
             'meta_query'     => [
                 [
                     'key'   => '_scps_source_url',

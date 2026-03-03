@@ -166,7 +166,7 @@ class MetaApiClient {
             update_option(self::BACKOFF_OPTION, time() + $duration);
         }
 
-        throw new MetaApiException(esc_html($message), $code, esc_html($type), esc_html($fbtrace_id));
+        throw new MetaApiException(esc_html($message), $code, esc_html($type), esc_html($fbtrace_id)); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- $code is an int, not output to the browser
     }
 
     /**

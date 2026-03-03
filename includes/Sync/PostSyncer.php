@@ -155,6 +155,7 @@ class PostSyncer {
             'post_type'      => SocialPostCPT::POST_TYPE,
             'post_status'    => 'any',
             'posts_per_page' => 1,
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- covered by scps_meta_key_value index (meta_key, meta_value) created on activation
             'meta_query'     => [
                 [
                     'key'   => SocialPostCPT::META_SOURCE_ID,

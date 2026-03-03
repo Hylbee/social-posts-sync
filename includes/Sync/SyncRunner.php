@@ -61,7 +61,10 @@ class SyncRunner {
             try {
                 $batch_posts_map = $fb_feed->fetchPostsBatch(array_values($batch_ids));
             } catch (\Throwable $e) {
-                error_log('[SCPS] Batch fetch failed, falling back to individual calls: ' . $e->getMessage());
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+                    error_log('[SCPS] Batch fetch failed, falling back to individual calls: ' . $e->getMessage());
+                }
                 $batch_posts_map = [];
                 $single_ids      = array_merge(array_values($single_ids), array_values($batch_ids));
                 unset($e);
@@ -74,7 +77,10 @@ class SyncRunner {
                         $log['success']++;
                     } catch (\Throwable $e) {
                         $log['errors']++;
-                        error_log('[SCPS] Sync error (facebook post, page ' . $page_id . '): ' . $e->getMessage());
+                        if (defined('WP_DEBUG') && WP_DEBUG) {
+                            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+                            error_log('[SCPS] Sync error (facebook post, page ' . $page_id . '): ' . $e->getMessage());
+                        }
                         unset($e);
                     }
                 }
@@ -100,7 +106,10 @@ class SyncRunner {
                         $log['success']++;
                     } catch (\Throwable $e) {
                         $log['errors']++;
-                        error_log('[SCPS] Sync error (facebook post, page ' . $page_id . '): ' . $e->getMessage());
+                        if (defined('WP_DEBUG') && WP_DEBUG) {
+                            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+                            error_log('[SCPS] Sync error (facebook post, page ' . $page_id . '): ' . $e->getMessage());
+                        }
                         unset($e);
                     }
                 }
@@ -109,7 +118,10 @@ class SyncRunner {
                 $log['sources'][$page_id] = count($posts);
             } catch (\Throwable $e) {
                 $log['errors']++;
-                error_log('[SCPS] Sync error (facebook page ' . $page_id . '): ' . $e->getMessage());
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+                    error_log('[SCPS] Sync error (facebook page ' . $page_id . '): ' . $e->getMessage());
+                }
                 unset($e);
             }
         }
@@ -138,7 +150,10 @@ class SyncRunner {
                         $log['success']++;
                     } catch (\Throwable $e) {
                         $log['errors']++;
-                        error_log('[SCPS] Sync error (instagram post, account ' . $ig_id . '): ' . $e->getMessage());
+                        if (defined('WP_DEBUG') && WP_DEBUG) {
+                            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+                            error_log('[SCPS] Sync error (instagram post, account ' . $ig_id . '): ' . $e->getMessage());
+                        }
                         unset($e);
                     }
                 }
@@ -147,7 +162,10 @@ class SyncRunner {
                 $log['sources'][$ig_id] = count($posts);
             } catch (\Throwable $e) {
                 $log['errors']++;
-                error_log('[SCPS] Sync error (instagram account ' . $ig_id . '): ' . $e->getMessage());
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+                    error_log('[SCPS] Sync error (instagram account ' . $ig_id . '): ' . $e->getMessage());
+                }
                 unset($e);
             }
         }
