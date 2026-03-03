@@ -314,6 +314,13 @@ class SettingsPage {
             esc_html_e('Votre token Meta expire bientôt. Reconnectez-vous pour éviter toute interruption.', 'social-posts-sync');
             echo '</p></div>';
         }
+
+        // Proxy unreachable warning
+        if ($this->oauth->isConnected() && !$this->oauth->isProxyReachable()) {
+            echo '<div class="notice notice-warning is-dismissible"><p>';
+            esc_html_e('Le serveur proxy Social Posts Sync est inaccessible. La synchronisation automatique et le renouvellement du token risquent d\'échouer.', 'social-posts-sync');
+            echo '</p></div>';
+        }
     }
 
     // -------------------------------------------------------------------------

@@ -301,6 +301,54 @@ class MetaOAuth {
     }
 
     // -------------------------------------------------------------------------
+    // Proxy Health
+    // -------------------------------------------------------------------------
+
+    /**
+     * Probe the proxy server and cache the result for 5 minutes.
+     *
+     * Called at most once every 5 minutes (via transient) to avoid blocking
+     * every admin page load. Returns true immediately if the cached result
+     * is healthy.
+     *
+     * @return bool True if the proxy responded with HTTP 200, false otherwise.
+     */
+    public function checkProxyHealth(): bool {
+        $cached = get_transient('scps_proxy_health');
+        if ($cached !== false) {
+            return (bool) $cached;
+        }
+
+        $response = wp_remote_get(self::PROXY_BASE . '/health', [
+            'timeout'   => 5,
+            'sslverify' => true,
+        ]);
+
+        $healthy = !is_wp_error($response)
+            && wp_remote_retrieve_response_code($response) === 200;
+
+        set_transient('scps_proxy_health', (int) $healthy, 5 * MINUTE_IN_SECONDS);
+
+        return $healthy;
+    }
+
+    /**
+     * Return the cached proxy health status without making a new HTTP request.
+     *
+     * If no cached value exists yet, triggers a fresh check.
+     *
+     * @return bool True if the proxy is (or was recently) reachable.
+     */
+    public function isProxyReachable(): bool {
+        $cached = get_transient('scps_proxy_health');
+        if ($cached !== false) {
+            return (bool) $cached;
+        }
+
+        return $this->checkProxyHealth();
+    }
+
+    // -------------------------------------------------------------------------
     // Token Status Checks
     // -------------------------------------------------------------------------
 
