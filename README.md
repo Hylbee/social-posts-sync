@@ -2,7 +2,7 @@
 
 Sync Facebook Pages and Instagram Business accounts to WordPress via the Meta Graph API.
 
-**Stable Tag:** 1.2.1
+**Stable Tag:** 1.2.2
 **Tested up to:** 6.7
 **Requires at least:** 6.0
 **Requires PHP:** 8.0
