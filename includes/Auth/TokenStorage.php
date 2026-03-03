@@ -15,12 +15,14 @@ namespace SocialPostsSync\Auth;
 
 defined('ABSPATH') || exit;
 
+use SocialPostsSync\Helpers\Encryption;
+
 class TokenStorage {
 
-    private MetaOAuth $oauth;
+    private Encryption $encryption;
 
-    public function __construct(MetaOAuth $oauth) {
-        $this->oauth = $oauth;
+    public function __construct(Encryption $encryption) {
+        $this->encryption = $encryption;
     }
 
     /**
@@ -36,7 +38,7 @@ class TokenStorage {
             return '';
         }
 
-        $decrypted = $this->oauth->decrypt($encrypted);
+        $decrypted = $this->encryption->decrypt($encrypted);
         return $decrypted !== false ? $decrypted : '';
     }
 
@@ -47,7 +49,7 @@ class TokenStorage {
      * @param string $value      Plain-text token to store.
      */
     public function set(string $option_key, string $value): void {
-        update_option($option_key, $this->oauth->encrypt($value));
+        update_option($option_key, $this->encryption->encrypt($value));
     }
 
     /**
@@ -62,7 +64,7 @@ class TokenStorage {
         $stored = (array) get_option($option_key, []);
         $result = [];
         foreach ($stored as $key => $encrypted) {
-            $decrypted = $this->oauth->decrypt((string) $encrypted);
+            $decrypted = $this->encryption->decrypt((string) $encrypted);
             if ($decrypted !== false && $decrypted !== '') {
                 $result[(string) $key] = $decrypted;
             }
@@ -80,7 +82,7 @@ class TokenStorage {
     public function setAll(string $option_key, array $tokens): void {
         $stored = (array) get_option($option_key, []);
         foreach ($tokens as $key => $value) {
-            $stored[(string) $key] = $this->oauth->encrypt($value);
+            $stored[(string) $key] = $this->encryption->encrypt($value);
         }
         update_option($option_key, $stored);
     }

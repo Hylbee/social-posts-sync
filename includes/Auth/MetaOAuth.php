@@ -4,17 +4,17 @@
  *
  * Delegates the OAuth 2.0 flow to a centralized proxy server
  * (https://social-proxy.hylbee.pro). The proxy handles the Meta App
- * credentials; WordPress only stores the resulting long-lived access token
- * and the user's licence key.
+ * credentials; WordPress only stores the resulting long-lived access token.
+ * Licence key management is delegated to Licence\LicenceManager.
  *
  * Token storage:
  *  - scps_meta_access_token      → AES-256-CBC encrypted access token
  *  - scps_meta_token_expires_at  → Unix timestamp of token expiry
- *  - scps_licence_key            → AES-256-CBC encrypted licence key
  *  - scps_meta_account_name      → Connected account name (display only)
  *
  * Encryption is delegated to Helpers\Encryption.
  * Proxy health checks are delegated to Helpers\ProxyClient.
+ * Licence operations are delegated to Licence\LicenceManager.
  *
  * @package SocialPostsSync\Auth
  */
@@ -27,6 +27,7 @@ defined('ABSPATH') || exit;
 
 use SocialPostsSync\Helpers\Encryption;
 use SocialPostsSync\Helpers\ProxyClient;
+use SocialPostsSync\Licence\LicenceManager;
 
 /**
  * Handles Meta OAuth 2.0 flow via the Social Posts Sync proxy server.
@@ -43,12 +44,15 @@ class MetaOAuth {
      */
     private const EXPIRY_THRESHOLD = 7 * DAY_IN_SECONDS;
 
-    private Encryption  $encryption;
-    private ProxyClient $proxy;
+    private Encryption      $encryption;
+    private LicenceManager  $licence;
 
-    public function __construct(?Encryption $encryption = null, ?ProxyClient $proxy = null) {
+    public function __construct(
+        ?Encryption $encryption = null,
+        ?LicenceManager $licence = null
+    ) {
         $this->encryption = $encryption ?? new Encryption();
-        $this->proxy      = $proxy      ?? new ProxyClient();
+        $this->licence    = $licence    ?? new LicenceManager($this->encryption);
     }
 
     // -------------------------------------------------------------------------
@@ -166,7 +170,7 @@ class MetaOAuth {
      * @return bool True on success, false on failure.
      */
     public function refreshToken(): bool {
-        $licence_key  = $this->getLicenceKey();
+        $licence_key  = $this->licence->getLicenceKey();
         $access_token = $this->getAccessToken();
 
         if (!$licence_key || !$access_token) {
@@ -205,44 +209,6 @@ class MetaOAuth {
         return true;
     }
 
-    /**
-     * Validate the licence key against the proxy.
-     *
-     * Calls GET /licence/validate?licence_key=KEY&domain=DOMAIN
-     * Rate limited to max 5 attempts per IP per 5 minutes.
-     *
-     * @param string $key Licence key to validate.
-     *
-     * @return bool True if valid, false otherwise.
-     */
-    public function validateLicenceKey(string $key): bool {
-        if (!$key) {
-            return false;
-        }
-
-        $ip            = sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'] ?? ''));
-        $transient_key = 'scps_licence_attempts_' . md5($ip);
-        $attempts      = (int) get_transient($transient_key);
-        if ($attempts >= 5) {
-            return false;
-        }
-        set_transient($transient_key, $attempts + 1, 5 * MINUTE_IN_SECONDS);
-
-        $response = wp_remote_get(add_query_arg([
-            'licence_key' => $key,
-            'domain'      => wp_parse_url(home_url(), PHP_URL_HOST),
-        ], ProxyClient::BASE_URL . '/licence/validate'));
-
-        if (is_wp_error($response)) {
-            return false;
-        }
-
-        $http_code = wp_remote_retrieve_response_code($response);
-        $body      = json_decode(wp_remote_retrieve_body($response), true);
-
-        return $http_code === 200 && !empty($body['success']);
-    }
-
     // -------------------------------------------------------------------------
     // Token Storage (Encrypted)
     // -------------------------------------------------------------------------
@@ -273,56 +239,12 @@ class MetaOAuth {
     }
 
     /**
-     * Store the licence key, encrypted.
-     *
-     * @param string $key Plain-text licence key.
-     */
-    public function storeLicenceKey(string $key): void {
-        update_option('scps_licence_key', $this->encryption->encrypt($key));
-    }
-
-    /**
-     * Retrieve and decrypt the stored licence key.
-     *
-     * @return string Plain-text licence key.
-     */
-    public function getLicenceKey(): string {
-        $encrypted = get_option('scps_licence_key', '');
-        if (!$encrypted) {
-            return '';
-        }
-        return $this->encryption->decrypt($encrypted) ?: '';
-    }
-
-    /**
      * Disconnect: remove stored token and account name.
      */
     public function disconnect(): void {
         delete_option('scps_meta_access_token');
         delete_option('scps_meta_token_expires_at');
         delete_option('scps_meta_account_name');
-    }
-
-    // -------------------------------------------------------------------------
-    // Proxy Health — delegated to ProxyClient
-    // -------------------------------------------------------------------------
-
-    /**
-     * Probe the proxy server and cache the result for 5 minutes.
-     *
-     * @return bool True if the proxy responded with HTTP 200.
-     */
-    public function checkProxyHealth(): bool {
-        return $this->proxy->checkHealth();
-    }
-
-    /**
-     * Return the cached proxy health status without making a new HTTP request.
-     *
-     * @return bool True if the proxy is (or was recently) reachable.
-     */
-    public function isProxyReachable(): bool {
-        return $this->proxy->isReachable();
     }
 
     // -------------------------------------------------------------------------
@@ -408,29 +330,4 @@ class MetaOAuth {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Encryption passthrough — kept for backward compatibility with TokenStorage
-    // -------------------------------------------------------------------------
-
-    /**
-     * Encrypt a value. Delegates to Helpers\Encryption.
-     *
-     * @param string $value Plain-text value.
-     *
-     * @return string Encrypted value.
-     */
-    public function encrypt(string $value): string {
-        return $this->encryption->encrypt($value);
-    }
-
-    /**
-     * Decrypt a value. Delegates to Helpers\Encryption.
-     *
-     * @param string $encrypted Encrypted value.
-     *
-     * @return string|false Plain-text value, or false on failure.
-     */
-    public function decrypt(string $encrypted): string|false {
-        return $this->encryption->decrypt($encrypted);
-    }
 }

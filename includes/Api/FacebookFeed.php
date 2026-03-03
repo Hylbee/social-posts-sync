@@ -14,8 +14,8 @@ namespace SocialPostsSync\Api;
 
 defined('ABSPATH') || exit;
 
-use SocialPostsSync\Auth\MetaOAuth;
 use SocialPostsSync\Auth\TokenStorage;
+use SocialPostsSync\Helpers\Encryption;
 use SocialPostsSync\Helpers\FacebookPostNormalizer;
 
 /**
@@ -60,7 +60,7 @@ class FacebookFeed implements FeedInterface {
         ?FacebookPostNormalizer $normalizer = null
     ) {
         $this->client     = $client;
-        $this->tokenStorage = $tokenStorage ?? new TokenStorage(new MetaOAuth());
+        $this->tokenStorage = $tokenStorage ?? new TokenStorage(new Encryption());
         $this->normalizer   = $normalizer   ?? new FacebookPostNormalizer();
     }
 

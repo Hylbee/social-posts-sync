@@ -18,9 +18,6 @@ defined('ABSPATH') || exit;
 
 class ProxyClient {
 
-    /**
-     * Proxy base URL. Public so MetaOAuth can build endpoint URLs.
-     */
     public const BASE_URL = 'https://social-proxy.hylbee.pro';
 
     private const HEALTH_TRANSIENT = 'scps_proxy_health';
@@ -29,10 +26,8 @@ class ProxyClient {
 
     /**
      * Probe the proxy /health endpoint and cache the result for 5 minutes.
-     *
-     * @return bool True if the proxy responded with HTTP 200.
      */
-    public function checkHealth(): bool {
+    public static function checkHealth(): bool {
         $response = wp_remote_get(self::BASE_URL . '/health', [
             'timeout'   => self::HEALTH_TIMEOUT,
             'sslverify' => true,
@@ -49,15 +44,13 @@ class ProxyClient {
     /**
      * Return the cached proxy health status.
      * Triggers a fresh check only if no cached value exists yet.
-     *
-     * @return bool True if the proxy is (or was recently) reachable.
      */
-    public function isReachable(): bool {
+    public static function isReachable(): bool {
         $cached = get_transient(self::HEALTH_TRANSIENT);
         if ($cached !== false) {
             return (bool) $cached;
         }
 
-        return $this->checkHealth();
+        return self::checkHealth();
     }
 }
