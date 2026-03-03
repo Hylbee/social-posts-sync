@@ -116,6 +116,70 @@ class FacebookFeed {
     }
 
     /**
+     * Fetch posts for multiple Facebook pages in a single batch HTTP request.
+     *
+     * Uses the Meta Graph API batch endpoint to retrieve posts for all given
+     * page IDs in one round-trip. Falls back to individual fetchPosts() calls
+     * for any page whose batch sub-response failed.
+     *
+     * @param string[] $pageIds Array of Facebook Page IDs.
+     * @param int      $limit   Maximum posts per page (0 = use scps_max_posts option).
+     *
+     * @return array<string, array> Map of pageId → normalized post array.
+     */
+    public function fetchPostsBatch(array $pageIds, int $limit = 0): array {
+        if (empty($pageIds)) {
+            return [];
+        }
+
+        if ($limit <= 0) {
+            $limit = (int) get_option('scps_max_posts', 20);
+        }
+
+        // Build batch sub-requests — one per page using the user token
+        $fields  = self::POST_FIELDS;
+        $capped  = min($limit, 100);
+        $requests = [];
+        foreach ($pageIds as $i => $pageId) {
+            $requests[$i] = [
+                'method'       => 'GET',
+                'relative_url' => ltrim($pageId, '/') . '/posts?fields=' . rawurlencode($fields) . '&limit=' . $capped,
+            ];
+        }
+
+        try {
+            $batch_results = $this->client->batch($requests);
+        } catch (\Throwable $e) {
+            // Batch request failed entirely — fall back to individual calls
+            $batch_results = array_fill(0, count($pageIds), null);
+        }
+
+        $results = [];
+        foreach ($pageIds as $i => $pageId) {
+            $sub = $batch_results[$i] ?? null;
+
+            if (!is_array($sub)) {
+                // Sub-request failed — fall back to individual fetchPosts()
+                try {
+                    $results[$pageId] = $this->fetchPosts($pageId, $limit);
+                } catch (\Throwable) {
+                    $results[$pageId] = [];
+                }
+                continue;
+            }
+
+            $page_info = $this->getPageInfo($pageId, $this->getPageClient($pageId));
+            $posts     = [];
+            foreach (($sub['data'] ?? []) as $raw) {
+                $posts[] = $this->normalize($raw, $page_info);
+            }
+            $results[$pageId] = $posts;
+        }
+
+        return $results;
+    }
+
+    /**
      * Fetch basic info for any public Facebook Page (without admin rights).
      *
      * Uses the user access token directly — no page token needed for public pages.

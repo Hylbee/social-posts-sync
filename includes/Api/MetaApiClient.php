@@ -186,6 +186,86 @@ class MetaApiClient {
     }
 
     /**
+     * Execute multiple Graph API requests in a single HTTP round-trip (batch API).
+     *
+     * Each request in $requests must contain at least:
+     *   - 'method'       (string) HTTP method, e.g. 'GET'
+     *   - 'relative_url' (string) Endpoint + query string, e.g. '/me/accounts?fields=id,name'
+     *
+     * Returns an array indexed the same as $requests. Each entry is the decoded JSON
+     * body of the corresponding sub-response, or null if that sub-request failed.
+     *
+     * @see https://developers.facebook.com/docs/graph-api/batch-requests
+     *
+     * @param array[] $requests Array of sub-request descriptors.
+     *
+     * @return array[] Decoded response bodies, one per input request (null on sub-error).
+     *
+     * @throws MetaApiException  On top-level API error or rate limit.
+     * @throws \RuntimeException On HTTP / network error or invalid JSON.
+     */
+    public function batch(array $requests): array {
+        if ($this->isBackingOff()) {
+            $until = (int) get_option(self::BACKOFF_OPTION, 0);
+            throw new MetaApiException(
+                esc_html(sprintf('Rate limit active. Retry after %s.', gmdate('Y-m-d H:i:s', $until))),
+                429
+            );
+        }
+
+        $url = self::BASE_URL . '/';
+
+        $response = wp_remote_post($url, [
+            'timeout'    => 30,
+            'user-agent' => 'SocialPostsSync/' . SCPS_VERSION . ' WordPress/' . get_bloginfo('version'),
+            'body'       => [
+                'access_token' => $this->access_token,
+                'batch'        => wp_json_encode($requests),
+            ],
+        ]);
+
+        if (is_wp_error($response)) {
+            throw new \RuntimeException(
+                esc_html('Batch HTTP request failed: ' . $response->get_error_message())
+            );
+        }
+
+        $body = wp_remote_retrieve_body($response);
+        $data = json_decode($body, true);
+
+        if (!is_array($data)) {
+            throw new \RuntimeException('Invalid JSON response from Meta batch API.');
+        }
+
+        // Top-level error (e.g. invalid token before any sub-request runs)
+        if (isset($data['error'])) {
+            $this->handleApiError($data['error']);
+        }
+
+        // Decode each sub-response body
+        $results = [];
+        foreach ($data as $i => $sub) {
+            if (!is_array($sub) || ($sub['code'] ?? 200) >= 400) {
+                $results[$i] = null;
+                continue;
+            }
+            $sub_body = json_decode((string) ($sub['body'] ?? ''), true);
+            if (!is_array($sub_body)) {
+                $results[$i] = null;
+                continue;
+            }
+            // Propagate sub-request API errors as null (caller decides how to handle)
+            if (isset($sub_body['error'])) {
+                $results[$i] = null;
+                continue;
+            }
+            $results[$i] = $sub_body;
+        }
+
+        return $results;
+    }
+
+    /**
      * Invalidate the transient cache for a specific endpoint / params combination.
      */
     public function invalidateCache(string $endpoint, array $params = []): void {

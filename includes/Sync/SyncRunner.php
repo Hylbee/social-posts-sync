@@ -40,8 +40,46 @@ class SyncRunner {
         do_action('scps_before_sync', $enabled_sources);
 
         // Facebook pages
-        $fb_feed = new FacebookFeed($client);
-        foreach (scps_extract_source_ids($enabled_sources, 'facebook') as $page_id) {
+        // Use the batch API when multiple pages need a full (non-incremental) fetch
+        // to reduce round-trips. Incremental (since-based) fetches remain sequential
+        // because they use page-specific tokens and timestamps.
+        $fb_feed    = new FacebookFeed($client);
+        $fb_ids     = scps_extract_source_ids($enabled_sources, 'facebook');
+        $batch_ids  = array_filter($fb_ids, static fn($id) => !get_option("scps_last_sync_{$id}", ''));
+        $single_ids = array_filter($fb_ids, static fn($id) => (bool) get_option("scps_last_sync_{$id}", ''));
+
+        // Batch fetch for pages that have never synced (no last_sync timestamp)
+        if (count($batch_ids) >= 2) {
+            try {
+                $batch_posts_map = $fb_feed->fetchPostsBatch(array_values($batch_ids));
+            } catch (\Throwable $e) {
+                error_log('[SCPS] Batch fetch failed, falling back to individual calls: ' . $e->getMessage());
+                $batch_posts_map = [];
+                $single_ids      = array_merge(array_values($single_ids), array_values($batch_ids));
+                unset($e);
+            }
+
+            foreach ($batch_posts_map as $page_id => $posts) {
+                foreach ($posts as $post) {
+                    try {
+                        $syncer->sync($post);
+                        $log['success']++;
+                    } catch (\Throwable $e) {
+                        $log['errors']++;
+                        error_log('[SCPS] Sync error (facebook post, page ' . $page_id . '): ' . $e->getMessage());
+                        unset($e);
+                    }
+                }
+                update_option("scps_last_sync_{$page_id}", (string) time());
+                $log['sources'][$page_id] = count($posts);
+            }
+        } else {
+            // Only 1 new page — merge into the sequential list
+            $single_ids = array_merge(array_values($single_ids), array_values($batch_ids));
+        }
+
+        // Sequential fetch for incremental syncs (since-based)
+        foreach ($single_ids as $page_id) {
             $last_sync = get_option("scps_last_sync_{$page_id}", '');
             try {
                 $posts = $last_sync
