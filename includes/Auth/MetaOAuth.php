@@ -158,8 +158,9 @@ class MetaOAuth {
     /**
      * Refresh the current access token via the proxy.
      *
-     * Calls GET /auth/facebook/refresh?access_token=TOKEN&back=URL
-     * with the X-Licence-Key header.
+     * Calls POST /auth/facebook/refresh with access_token and back in the
+     * request body (application/x-www-form-urlencoded) and the licence key
+     * in the X-Licence-Key header.
      * Expects JSON: { "facebook_access_token": "...", "expires_in": ... }
      *
      * @return bool True on success, false on failure.
@@ -177,12 +178,14 @@ class MetaOAuth {
             admin_url('options-general.php?page=social-posts-sync')
         );
 
-        $response = wp_remote_get(add_query_arg([
-            'access_token' => $access_token,
-            'back'         => urlencode($back),
-        ], ProxyClient::BASE_URL . '/auth/facebook/refresh'), [
+        $response = wp_remote_post(ProxyClient::BASE_URL . '/auth/facebook/refresh', [
             'headers' => [
                 'X-Licence-Key' => $licence_key,
+                'Content-Type'  => 'application/x-www-form-urlencoded',
+            ],
+            'body' => [
+                'access_token' => $access_token,
+                'back'         => $back,
             ],
         ]);
 
