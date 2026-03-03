@@ -99,9 +99,8 @@ class FacebookPostNormalizer {
             $media_type = strtolower((string) ($attachment['media_type'] ?? ''));
 
             if ($media_type === 'video') {
-                $src = $attachment['media']['source'] ?? null;
-                if ($src && !$video_url) {
-                    $video_url = (string) $src;
+                if (!$video_url) {
+                    $video_url = $this->extractVideoUrl($attachment['media'] ?? []);
                 }
                 continue;
             }
@@ -114,9 +113,8 @@ class FacebookPostNormalizer {
                 foreach ($subattachments as $sub) {
                     $sub_type = strtolower((string) ($sub['media_type'] ?? ''));
                     if ($sub_type === 'video') {
-                        $sub_src = $sub['media']['source'] ?? null;
-                        if ($sub_src && !$video_url) {
-                            $video_url = (string) $sub_src;
+                        if (!$video_url) {
+                            $video_url = $this->extractVideoUrl($sub['media'] ?? []);
                         }
                         continue;
                     }
@@ -145,5 +143,16 @@ class FacebookPostNormalizer {
         }
 
         return [$unique_urls, $video_url];
+    }
+
+    /**
+     * Extract the video source URL from a media data array.
+     *
+     * @param array $media_data The 'media' sub-array of an attachment or subattachment.
+     *
+     * @return string Video source URL, or empty string if not present.
+     */
+    private function extractVideoUrl(array $media_data): string {
+        return (string) ($media_data['source'] ?? '');
     }
 }
