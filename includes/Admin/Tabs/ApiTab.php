@@ -12,17 +12,20 @@ namespace SocialPostsSync\Admin\Tabs;
 defined('ABSPATH') || exit;
 
 use SocialPostsSync\Auth\MetaOAuth;
+use SocialPostsSync\Licence\LicenceManager;
 
 class ApiTab {
 
-    private MetaOAuth $oauth;
+    private MetaOAuth      $oauth;
+    private LicenceManager $licence;
 
-    public function __construct(MetaOAuth $oauth) {
-        $this->oauth = $oauth;
+    public function __construct(MetaOAuth $oauth, LicenceManager $licence) {
+        $this->oauth   = $oauth;
+        $this->licence = $licence;
     }
 
     public function render(): void {
-        $licence_key  = $this->oauth->getLicenceKey();
+        $licence_key  = $this->licence->getLicenceKey();
         $is_connected = $this->oauth->isConnected();
         $account_name = $this->oauth->getAccountName();
         $expires_date = $this->oauth->getTokenExpiryDate();
@@ -50,11 +53,21 @@ class ApiTab {
                                    class="regular-text" autocomplete="new-password"
                                    onfocus="if(this.value==='********************')this.value='';"
                                    onblur="if(this.value==='')this.value=<?php echo $licence_key ? '\'********************\'' : '\'\''; ?>;">
+
                             <?php if ($licence_key) : ?>
-                                <p class="description" style="color:#46b450;">
+                                <p class="description" style="color:#46b450; margin-bottom:8px;">
                                     <span class="dashicons dashicons-yes" style="vertical-align:middle;"></span>
                                     <?php esc_html_e('Clé de licence enregistrée et valide.', 'social-posts-sync'); ?>
                                 </p>
+                                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline;">
+                                    <input type="hidden" name="action" value="scps_revoke_licence">
+                                    <?php wp_nonce_field('scps_revoke_licence'); ?>
+                                    <button type="submit" class="button button-secondary"
+                                            onclick="return confirm('<?php esc_attr_e('Êtes-vous sûr de vouloir déconnecter la licence ? Cette action est irréversible. Vous devrez re-enregistrer votre licence pour utiliser le proxy.', 'social-posts-sync'); ?>');">
+                                        <span class="dashicons dashicons-no" style="vertical-align:middle;"></span>
+                                        <?php esc_html_e('Déconnecter la licence', 'social-posts-sync'); ?>
+                                    </button>
+                                </form>
                             <?php else : ?>
                                 <p class="description" style="color:#dc3232;">
                                     <span class="dashicons dashicons-warning" style="vertical-align:middle;"></span>

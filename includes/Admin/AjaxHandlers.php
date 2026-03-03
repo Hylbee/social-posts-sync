@@ -15,6 +15,7 @@ namespace SocialPostsSync\Admin;
 defined('ABSPATH') || exit;
 
 use SocialPostsSync\Auth\MetaOAuth;
+use SocialPostsSync\Licence\LicenceManager;
 use SocialPostsSync\Api\MetaApiClient;
 use SocialPostsSync\Api\FacebookFeed;
 use SocialPostsSync\Api\InstagramFeed;
@@ -22,10 +23,12 @@ use SocialPostsSync\Sync\SyncRunner;
 
 class AjaxHandlers {
 
-    private MetaOAuth $oauth;
+    private MetaOAuth      $oauth;
+    private LicenceManager $licence;
 
-    public function __construct(MetaOAuth $oauth) {
-        $this->oauth = $oauth;
+    public function __construct(MetaOAuth $oauth, LicenceManager $licence) {
+        $this->oauth   = $oauth;
+        $this->licence = $licence;
     }
 
     /**
@@ -304,7 +307,7 @@ class AjaxHandlers {
         // Full reset: also wipe settings and connection
         if ($scope === 'all') {
             $this->oauth->disconnect();
-            delete_option('scps_licence_key');
+            $this->licence->revokeLicence(); // Revoke on proxy and delete local key
             delete_option('scps_enabled_sources');
             delete_option('scps_sync_log');
             delete_option('scps_max_posts');

@@ -16,6 +16,8 @@ namespace SocialPostsSync\Admin;
 defined('ABSPATH') || exit;
 
 use SocialPostsSync\Auth\MetaOAuth;
+use SocialPostsSync\Helpers\ProxyClient;
+use SocialPostsSync\Licence\LicenceManager;
 use SocialPostsSync\Admin\Tabs\ApiTab;
 use SocialPostsSync\Admin\Tabs\SourcesTab;
 use SocialPostsSync\Admin\Tabs\SyncTab;
@@ -27,10 +29,12 @@ use SocialPostsSync\Admin\Tabs\AdvancedTab;
  */
 class SettingsPage {
 
-    private MetaOAuth $oauth;
+    private MetaOAuth      $oauth;
+    private LicenceManager $licence;
 
     public function __construct() {
-        $this->oauth = new MetaOAuth();
+        $this->licence = new LicenceManager();
+        $this->oauth   = new MetaOAuth(null, $this->licence);
     }
 
     /**
@@ -44,11 +48,12 @@ class SettingsPage {
         add_action('admin_post_scps_save_cron',         [$this, 'handleSaveCron']);
         add_action('admin_post_scps_save_sync_settings', [$this, 'handleSaveSyncSettings']);
         add_action('admin_post_scps_disconnect',        [$this, 'handleDisconnect']);
+        add_action('admin_post_scps_revoke_licence',    [$this, 'handleRevokeLicence']);
         add_action('admin_post_scps_save_advanced',     [$this, 'handleSaveAdvanced']);
         add_action('admin_notices', [$this, 'displayAdminNotices']);
 
         // Delegate all AJAX actions to a dedicated handler class
-        (new AjaxHandlers($this->oauth))->init();
+        (new AjaxHandlers($this->oauth, $this->licence))->init();
     }
 
     /**
@@ -87,8 +92,8 @@ class SettingsPage {
 
         $licence_key = sanitize_text_field(wp_unslash($_POST['scps_licence_key'] ?? ''));
         if ($licence_key) {
-            if ($this->oauth->validateLicenceKey($licence_key)) {
-                $this->oauth->storeLicenceKey($licence_key);
+            if ($this->licence->validateLicenceKey($licence_key)) {
+                $this->licence->storeLicenceKey($licence_key);
                 $redirect_args = ['page' => 'social-posts-sync', 'tab' => 'api', 'scps_licence' => 'valid'];
             } else {
                 $redirect_args = ['page' => 'social-posts-sync', 'tab' => 'api', 'scps_licence' => 'invalid'];
@@ -176,6 +181,25 @@ class SettingsPage {
             ['page' => 'social-posts-sync', 'tab' => 'sync', 'scps_saved' => '1'],
             admin_url('options-general.php')
         ));
+        exit;
+    }
+
+    /**
+     * Handle licence revocation.
+     */
+    public function handleRevokeLicence(): void {
+        if (!current_user_can('manage_options')) {
+            wp_die(esc_html__('Accès non autorisé.', 'social-posts-sync'));
+        }
+
+        check_admin_referer('scps_revoke_licence');
+        $success = $this->licence->revokeLicence();
+
+        $redirect_args = $success
+            ? ['page' => 'social-posts-sync', 'tab' => 'api', 'scps_licence_revoked' => '1']
+            : ['page' => 'social-posts-sync', 'tab' => 'api', 'scps_licence_revoke_error' => '1'];
+
+        wp_safe_redirect(add_query_arg($redirect_args, admin_url('options-general.php')));
         exit;
     }
 
@@ -302,6 +326,18 @@ class SettingsPage {
             echo '</p></div>';
         }
 
+        if (isset($_GET['scps_licence_revoked'])) {
+            echo '<div class="notice notice-success is-dismissible"><p>';
+            esc_html_e('Licence déconnectée avec succès.', 'social-posts-sync');
+            echo '</p></div>';
+        }
+
+        if (isset($_GET['scps_licence_revoke_error'])) {
+            echo '<div class="notice notice-warning is-dismissible"><p>';
+            esc_html_e('La clé de licence a été supprimée localement, mais la révocation sur le serveur a échoué.', 'social-posts-sync');
+            echo '</p></div>';
+        }
+
         if (isset($_GET['scps_error'])) {
             $error = sanitize_text_field(wp_unslash($_GET['scps_error']));
             echo '<div class="notice notice-error is-dismissible"><p>';
@@ -319,7 +355,7 @@ class SettingsPage {
         }
 
         // Proxy unreachable warning
-        if ($this->oauth->isConnected() && !$this->oauth->isProxyReachable()) {
+        if ($this->oauth->isConnected() && !ProxyClient::isReachable()) {
             echo '<div class="notice notice-warning is-dismissible"><p>';
             esc_html_e('Le serveur proxy Social Posts Sync est inaccessible. La synchronisation automatique et le renouvellement du token risquent d\'échouer.', 'social-posts-sync');
             echo '</p></div>';
@@ -380,7 +416,7 @@ class SettingsPage {
     private function renderActiveTab(string $active_tab): void {
         switch ($active_tab) {
             case 'api':
-                (new ApiTab($this->oauth))->render();
+                (new ApiTab($this->oauth, $this->licence))->render();
                 break;
             case 'sources':
                 (new SourcesTab($this->oauth))->render();
@@ -392,7 +428,7 @@ class SettingsPage {
                 (new AdvancedTab())->render();
                 break;
             default:
-                (new ApiTab($this->oauth))->render();
+                (new ApiTab($this->oauth, $this->licence))->render();
                 break;
         }
     }

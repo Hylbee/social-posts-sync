@@ -131,7 +131,7 @@ class AdvancedTab {
             <div class="scps-danger-action">
                 <div class="scps-danger-action-info">
                     <strong><?php esc_html_e('Réinitialisation complète du plugin', 'social-posts-sync'); ?></strong>
-                    <p><?php esc_html_e('Supprime toutes les publications, tous les médias importés, la connexion Meta, les réglages et les timestamps. Remet le plugin à zéro.', 'social-posts-sync'); ?></p>
+                    <p><?php esc_html_e('Supprime toutes les publications, tous les médias importés, la connexion Meta, les réglages et les timestamps. Révoque également la licence sur le serveur. Remet le plugin à zéro.', 'social-posts-sync'); ?></p>
                 </div>
                 <div class="scps-danger-action-btn">
                     <button type="button" id="scps-purge-all" class="button button-link-delete">
