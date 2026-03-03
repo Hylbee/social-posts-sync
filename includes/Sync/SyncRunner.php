@@ -21,6 +21,15 @@ use SocialPostsSync\Api\InstagramFeed;
 
 class SyncRunner {
 
+    private PostSyncer $syncer;
+
+    /**
+     * @param PostSyncer|null $syncer Post syncer instance. Defaults to a new PostSyncer.
+     */
+    public function __construct(?PostSyncer $syncer = null) {
+        $this->syncer = $syncer ?? new PostSyncer();
+    }
+
     /**
      * Execute the sync across all enabled Facebook and Instagram sources.
      *
@@ -34,8 +43,7 @@ class SyncRunner {
             $enabled_sources = ['facebook' => [], 'instagram' => []];
         }
 
-        $syncer = new PostSyncer();
-        $log    = ['timestamp' => current_time('c'), 'success' => 0, 'errors' => 0, 'sources' => []];
+        $log = ['timestamp' => current_time('c'), 'success' => 0, 'errors' => 0, 'sources' => []];
 
         do_action('scps_before_sync', $enabled_sources);
 
@@ -62,7 +70,7 @@ class SyncRunner {
             foreach ($batch_posts_map as $page_id => $posts) {
                 foreach ($posts as $post) {
                     try {
-                        $syncer->sync($post);
+                        $this->syncer->sync($post);
                         $log['success']++;
                     } catch (\Throwable $e) {
                         $log['errors']++;
@@ -88,7 +96,7 @@ class SyncRunner {
 
                 foreach ($posts as $post) {
                     try {
-                        $syncer->sync($post);
+                        $this->syncer->sync($post);
                         $log['success']++;
                     } catch (\Throwable $e) {
                         $log['errors']++;
@@ -126,7 +134,7 @@ class SyncRunner {
 
                 foreach ($posts as $post) {
                     try {
-                        $syncer->sync($post);
+                        $this->syncer->sync($post);
                         $log['success']++;
                     } catch (\Throwable $e) {
                         $log['errors']++;
