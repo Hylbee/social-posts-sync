@@ -3,7 +3,7 @@ Contributors: hylbee
 Tags: facebook, instagram, social media, sync, custom post type
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 1.3.0
+Stable tag: 1.3.1
 Requires PHP: 8.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -75,6 +75,9 @@ Yes. `AUTH_KEY` must be defined in your `wp-config.php` (it is in every standard
 
 == Changelog ==
 
+= 1.3.1 =
+* Fix: send licence revocation request as JSON to avoid CSRF 419 error on proxy
+
 = 1.3.0 =
 * Refacto: remove delegation facades, use direct calls and static methods
 * Feat: add licence revocation via dedicated LicenceManager (proxy + local cleanup)
@@ -98,6 +101,9 @@ Yes. `AUTH_KEY` must be defined in your `wp-config.php` (it is in every standard
 * Refacto: inject PostSyncer via constructor in SyncRunner
 
 == Upgrade Notice ==
+
+= 1.3.1 =
+Fix licence revocation failing with HTTP 419 on the proxy server.
 
 = 1.3.0 =
 Internal refactoring and licence management improvements. No breaking changes.

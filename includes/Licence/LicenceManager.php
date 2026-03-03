@@ -128,14 +128,13 @@ class LicenceManager {
 
         $response = wp_remote_post(ProxyClient::BASE_URL . '/licence/revoke', [
             'headers' => [
-                'Accept'           => 'application/json',
-                'X-Requested-With' => 'XMLHttpRequest',
-                'Content-Type'     => 'application/x-www-form-urlencoded',
+                'Accept'       => 'application/json',
+                'Content-Type' => 'application/json',
             ],
-            'body' => [
+            'body'      => wp_json_encode([
                 'licence_key' => $key,
                 'domain'      => wp_parse_url(home_url(), PHP_URL_HOST),
-            ],
+            ]),
             'timeout'   => 10,
             'sslverify' => true,
         ]);
@@ -144,12 +143,23 @@ class LicenceManager {
         $this->deleteLicenceKey();
 
         if (is_wp_error($response)) {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('[SCPS] Licence revocation request failed: ' . $response->get_error_message()); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+            }
             return false;
         }
 
         $http_code = wp_remote_retrieve_response_code($response);
         $body      = json_decode(wp_remote_retrieve_body($response), true);
 
-        return $http_code === 200 && !empty($body['success']);
+        if ($http_code !== 200 || empty($body['success'])) {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                $error_msg = $body['message'] ?? wp_remote_retrieve_body($response);
+                error_log('[SCPS] Licence revocation failed — HTTP ' . $http_code . ': ' . $error_msg); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+            }
+            return false;
+        }
+
+        return true;
     }
 }
