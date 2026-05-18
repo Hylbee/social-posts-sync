@@ -269,6 +269,11 @@ class AjaxHandlers {
 
         $scope = sanitize_text_field(wp_unslash($_POST['scope'] ?? 'posts'));
 
+        // Deactivate the licence on the proxy first so it is never left active after a hard reset
+        if ($scope === 'all') {
+            $this->licence->revokeLicence();
+        }
+
         // Delete all social_post entries (permanently, bypass trash)
         $posts = get_posts([
             'post_type'      => \SocialPostsSync\CPT\SocialPostCPT::POST_TYPE,
@@ -307,7 +312,6 @@ class AjaxHandlers {
         // Full reset: also wipe settings and connection
         if ($scope === 'all') {
             $this->oauth->disconnect();
-            $this->licence->revokeLicence(); // Revoke on proxy and delete local key
             delete_option('scps_enabled_sources');
             delete_option('scps_sync_log');
             delete_option('scps_max_posts');

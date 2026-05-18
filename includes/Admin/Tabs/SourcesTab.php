@@ -57,7 +57,8 @@ class SourcesTab {
                         </span>
                     </p>
                     <div id="scps-import-result"></div>
-
+                    
+                    <?php /*
                     <p class="description" style="margin-top:1em;">
                         <?php esc_html_e('Ou entrez manuellement un ID de Page Facebook publique (ex : 123456789) ou un @username Instagram Business (ex : @moncompte) :', 'social-posts-sync'); ?>
                     </p>
@@ -75,6 +76,7 @@ class SourcesTab {
                         </span>
                     </div>
                     <div id="scps-validate-result"></div>
+                    */ ?>
                 </div>
 
                 <hr>
