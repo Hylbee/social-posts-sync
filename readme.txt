@@ -63,7 +63,7 @@ Add the Facebook pages or Instagram accounts you want to sync by numeric page ID
 
 = What Meta App permissions are required? =
 
-`public_profile`, `pages_show_list`, `pages_read_engagement`, `pages_read_user_content`, `instagram_basic`, `instagram_content_publish`
+`public_profile`, `pages_show_list`, `pages_read_engagement`, `instagram_basic`, `instagram_content_publish`
 
 = Does the plugin work without Elementor? =
 

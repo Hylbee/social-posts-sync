@@ -105,6 +105,26 @@ class ApiTab {
                     <?php endif; ?>
                 </div>
 
+                <?php $token = $this->oauth->getAccessToken(); ?>
+                <?php if ($token) : ?>
+                    <p style="margin-top:12px;">
+                        <label for="scps_debug_token" style="display:block;font-weight:600;margin-bottom:4px;">
+                            <?php esc_html_e('Access Token (debug)', 'social-posts-sync'); ?>
+                        </label>
+                        <input type="text" id="scps_debug_token" readonly
+                               value="<?php echo esc_attr($token); ?>"
+                               class="large-text"
+                               style="font-family:monospace;font-size:11px;"
+                               onclick="this.select();">
+                        <small class="description">
+                            <?php esc_html_e('Cliquez pour sélectionner. À utiliser avec le débogueur de token Meta.', 'social-posts-sync'); ?>
+                            <a href="https://developers.facebook.com/tools/debug/accesstoken/" target="_blank" rel="noopener">
+                                <?php esc_html_e('Ouvrir le débogueur', 'social-posts-sync'); ?>
+                            </a>
+                        </small>
+                    </p>
+                <?php endif; ?>
+
                 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="scps-connect-action">
                     <input type="hidden" name="action" value="scps_disconnect">
                     <?php wp_nonce_field('scps_disconnect'); ?>

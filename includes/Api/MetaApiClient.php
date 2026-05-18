@@ -26,7 +26,7 @@ class MetaApiClient {
     /**
      * Base URL for the Meta Graph API.
      */
-    private const BASE_URL = 'https://graph.facebook.com/v21.0';
+    private const BASE_URL = 'https://graph.facebook.com/v25.0';
 
     /**
      * Default cache TTL in seconds (15 minutes).

@@ -26,7 +26,8 @@ class FacebookFeed implements FeedInterface {
     /**
      * Fields requested for each Facebook post.
      */
-    private const POST_FIELDS = 'id,message,full_picture,created_time,permalink_url,reactions.summary(total_count),attachments{media_type,media{image{src},source},subattachments{media_type,media{image{src},source}}}';
+    private const POST_FIELDS = 'id,message,full_picture,created_time,permalink_url,attachments{media_type,media{image{src},source},subattachments{media_type,media{image{src},source}}}';
+    //todo : add "reactions.summary(total_count)" to get reaction counts but requires "pages_read_user_content" api autorisation 
 
     /**
      * Fields requested for page info (avatar).
@@ -92,11 +93,12 @@ class FacebookFeed implements FeedInterface {
 
     /**
      * Get a MetaApiClient using the Page Access Token for a given page.
-     * Falls back to the user token if no page token is found.
      *
      * @param string $pageId Facebook Page ID.
      *
      * @return MetaApiClient Client authenticated with the Page Access Token.
+     *
+     * @throws MetaApiException If no Page Access Token is found for the page.
      */
     private function getPageClient(string $pageId): MetaApiClient {
         $token = $this->page_tokens[$pageId] ?? null;
@@ -110,21 +112,20 @@ class FacebookFeed implements FeedInterface {
             return new MetaApiClient($token);
         }
 
-        try {
-            $data = $this->client->get('/me/accounts', ['fields' => 'id,access_token']);
-            foreach (($data['data'] ?? []) as $page) {
-                if ((string) $page['id'] === $pageId && !empty($page['access_token'])) {
-                    $token                      = $page['access_token'];
-                    $this->page_tokens[$pageId] = $token;
-                    $this->tokenStorage->setAll(self::PAGE_TOKENS_OPTION, [$pageId => $token]);
-                    return new MetaApiClient($token);
-                }
+        $data = $this->client->get('/me/accounts', ['fields' => 'id,access_token']);
+        foreach (($data['data'] ?? []) as $page) {
+            if ((string) $page['id'] === $pageId && !empty($page['access_token'])) {
+                $token                      = $page['access_token'];
+                $this->page_tokens[$pageId] = $token;
+                $this->tokenStorage->setAll(self::PAGE_TOKENS_OPTION, [$pageId => $token]);
+                return new MetaApiClient($token);
             }
-        } catch (\Throwable $e) {
-            unset($e);
         }
 
-        return $this->client;
+        throw new MetaApiException(
+            sprintf('No Page Access Token found for page %s. Make sure the page is listed under /me/accounts (the connected Facebook account must be an admin of this page).', $pageId),
+            403
+        );
     }
 
     /**

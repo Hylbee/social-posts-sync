@@ -37,7 +37,7 @@ class MetaOAuth {
     /**
      * Meta API endpoint to verify token and get user info.
      */
-    private const ME_URL = 'https://graph.facebook.com/v21.0/me';
+    private const ME_URL = 'https://graph.facebook.com/v25.0/me';
 
     /**
      * Number of seconds before expiry at which the token is considered "expiring soon".
@@ -222,6 +222,8 @@ class MetaOAuth {
     private function storeAccessToken(string $token, int $expires_in): void {
         update_option('scps_meta_access_token', $this->encryption->encrypt($token));
         update_option('scps_meta_token_expires_at', time() + $expires_in);
+        // Invalidate cached page tokens so they are re-fetched with the new user token
+        delete_option('scps_page_tokens');
     }
 
     /**
@@ -245,6 +247,7 @@ class MetaOAuth {
         delete_option('scps_meta_access_token');
         delete_option('scps_meta_token_expires_at');
         delete_option('scps_meta_account_name');
+        delete_option('scps_page_tokens');
     }
 
     // -------------------------------------------------------------------------

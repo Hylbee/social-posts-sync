@@ -38,7 +38,7 @@ Fetches posts from your social media platforms and save them as custom WordPress
 
 ### Required Meta App Permissions
 
-`public_profile`, `pages_show_list`, `pages_read_engagement`, `pages_read_user_content`, `instagram_basic`, `instagram_content_publish`
+`public_profile`, `pages_show_list`, `pages_read_engagement`, `instagram_basic`, `instagram_content_publish`
 
 > **Note:** `AUTH_KEY` must be defined in your `wp-config.php` (it is in every standard WordPress install). The plugin uses it to derive the AES-256-CBC encryption key and the HMAC-SHA256 key for stored tokens.
 >
