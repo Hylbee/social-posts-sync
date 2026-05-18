@@ -68,7 +68,8 @@ class FacebookPostNormalizer {
             'video_url'     => $video_url,
             'author_name'   => $page_info['name'],
             'author_avatar' => $page_info['avatar'],
-            'likes_count'   => (int) ($raw['reactions']['summary']['total_count'] ?? 0),
+            //'likes_count'   => (int) ($raw['reactions']['summary']['total_count'] ?? 0),
+            'likes_count'   => (int) (0),
             'raw'           => $raw,
         ];
 

@@ -52,8 +52,13 @@ class PostSyncer {
         }
 
         if (is_wp_error($result)) {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+            error_log('[SCPS] wp_insert/update_post error — code: ' . $result->get_error_code()
+                . ' | message: ' . $result->get_error_message()
+                . ' | post_data: ' . wp_json_encode(array_merge($post_data, ['post_content' => mb_substr($post_data['post_content'] ?? '', 0, 100)]))
+                . ' | source_id: ' . ($normalized_post['source_id'] ?? 'n/a'));
             throw new \RuntimeException(
-                esc_html('Failed to save social post: ' . $result->get_error_message())
+                'Failed to save social post: ' . $result->get_error_message()
             );
         }
 
@@ -77,10 +82,19 @@ class PostSyncer {
         [$title, $body] = $this->splitTitleAndBody($normalized_post);
         $post_date = $this->normalizeDate($normalized_post['published_at'] ?? '');
 
+        $title = $this->strip4ByteChars($title);
+        $body  = $this->strip4ByteChars($body);
+
+        $slug = sanitize_title(remove_accents($this->stripUnicode($title)));
+        if ($slug === '') {
+            // Title was all emoji / non-ASCII — fall back to platform source_id
+            $slug = sanitize_title(($normalized_post['platform'] ?? 'post') . '-' . ($normalized_post['source_id'] ?? ''));
+        }
+
         return [
             'post_type'     => SocialPostCPT::POST_TYPE,
             'post_title'    => $title,
-            'post_name'     => sanitize_title(remove_accents($this->stripUnicode($title))),
+            'post_name'     => $slug,
             'post_content'  => wp_kses_post($body),
             'post_status'   => 'publish',
             'post_date'     => $post_date,
@@ -184,7 +198,7 @@ class PostSyncer {
         update_post_meta($post_id, SocialPostCPT::META_PLATFORM,      sanitize_text_field($data['platform']      ?? ''));
         update_post_meta($post_id, SocialPostCPT::META_SOURCE_ID,     sanitize_text_field($data['source_id']     ?? ''));
         update_post_meta($post_id, SocialPostCPT::META_ACCOUNT_ID,    sanitize_text_field($data['account_id']    ?? ''));
-        update_post_meta($post_id, SocialPostCPT::META_CONTENT,       sanitize_textarea_field($data['content']   ?? ''));
+        update_post_meta($post_id, SocialPostCPT::META_CONTENT,       sanitize_textarea_field($this->strip4ByteChars($data['content'] ?? '')));
         update_post_meta($post_id, SocialPostCPT::META_PERMALINK,     esc_url_raw($data['permalink']             ?? ''));
         update_post_meta($post_id, SocialPostCPT::META_PUBLISHED_AT,  sanitize_text_field($data['published_at']  ?? ''));
         update_post_meta($post_id, SocialPostCPT::META_MEDIA_URLS,    wp_json_encode($data['media_urls']         ?? []));
@@ -209,6 +223,30 @@ class PostSyncer {
      *
      * @return string ASCII-safe string.
      */
+    /**
+     * Normalize 4-byte Unicode characters for MySQL utf8 (3-byte) compatibility.
+     *
+     * Mathematical Alphanumeric Symbols (𝐋𝐚 → La, 𝘈𝘨𝘦𝘯𝘤𝘦 → Agence, etc.) are mapped
+     * to their ASCII equivalents via NFKD decomposition. Emoji and other 4-byte characters
+     * with no ASCII equivalent are removed.
+     *
+     * @param string $value UTF-8 string.
+     *
+     * @return string String safe for MySQL utf8 charset.
+     */
+    private function strip4ByteChars(string $value): string {
+        if (function_exists('normalizer_normalize')) {
+            // NFKD maps bold/italic/script math letters to their ASCII base characters
+            $normalized = normalizer_normalize($value, \Normalizer::FORM_KD);
+            if ($normalized !== false) {
+                $value = $normalized;
+            }
+        }
+
+        // Remove any remaining 4-byte sequences (emoji, symbols with no ASCII mapping)
+        return (string) preg_replace('/[\xF0-\xF7][\x80-\xBF]{3}/', '', $value);
+    }
+
     private function stripUnicode(string $value): string {
         if (function_exists('normalizer_normalize')) {
             $normalized = normalizer_normalize($value, \Normalizer::FORM_D);
