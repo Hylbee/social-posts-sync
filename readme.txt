@@ -2,8 +2,8 @@
 Contributors: hylbee
 Tags: facebook, instagram, social media, sync, custom post type
 Requires at least: 6.0
-Tested up to: 6.9
-Stable tag: 1.3.1
+Tested up to: 7.0
+Stable tag: 1.3.2
 Requires PHP: 8.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -75,6 +75,13 @@ Yes. `AUTH_KEY` must be defined in your `wp-config.php` (it is in every standard
 
 == Changelog ==
 
+= 1.3.2 =
+* Update: bump Meta Graph API endpoints to v25.0
+* Fix: improve access token handling in MetaOAuth and FacebookFeed
+* Feat: deactivate licence on proxy during hard reset
+* Refacto: set default likes_count to 0 in FacebookPostNormalizer; improve error logging and 4-byte Unicode handling in PostSyncer
+* Fix: sanitize error messages in PostSyncer and FacebookFeed for improved security
+
 = 1.3.1 =
 * Fix: send licence revocation request as JSON to avoid CSRF 419 error on proxy
 
@@ -101,6 +108,9 @@ Yes. `AUTH_KEY` must be defined in your `wp-config.php` (it is in every standard
 * Refacto: inject PostSyncer via constructor in SyncRunner
 
 == Upgrade Notice ==
+
+= 1.3.2 =
+Meta Graph API bumped to v25.0; security and stability improvements. No breaking changes.
 
 = 1.3.1 =
 Fix licence revocation failing with HTTP 419 on the proxy server.

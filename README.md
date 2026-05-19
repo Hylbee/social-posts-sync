@@ -2,8 +2,8 @@
 
 Fetches posts from your social media platforms and save them as custom WordPress post types.
 
-**Stable Tag:** 1.2.2
-**Tested up to:** 6.7
+**Stable Tag:** 1.3.2
+**Tested up to:** 7.0
 **Requires at least:** 6.0
 **Requires PHP:** 8.0
 **License:** GPL-2.0-or-later
@@ -250,6 +250,42 @@ social-posts-sync/
             ├── ScpsLikesCountTag.php
             └── ScpsVideoUrlTag.php
 ```
+
+---
+
+## Changelog
+
+### 1.3.2
+- Update: bump Meta Graph API endpoints to v25.0
+- Fix: improve access token handling in MetaOAuth and FacebookFeed
+- Feat: deactivate licence on proxy during hard reset
+- Refacto: set default `likes_count` to 0 in `FacebookPostNormalizer`; improve error logging and 4-byte Unicode handling in `PostSyncer`
+- Fix: sanitize error messages in `PostSyncer` and `FacebookFeed` for improved security
+
+### 1.3.1
+- Fix: send licence revocation request as JSON to avoid CSRF 419 error on proxy
+
+### 1.3.0
+- Refacto: remove delegation facades, use direct calls and static methods
+- Feat: add licence revocation via dedicated `LicenceManager` (proxy + local cleanup)
+- Fix: update translation system — rebuilt `.pot` and `en_US` `.po` files to match current codebase
+
+### 1.2.2
+- Fix: replace cURL with WP HTTP API (`wp_remote_get`) in media sideloader
+- Fix: replace `unlink()` with `wp_delete_file()`, `parse_url()` with `wp_parse_url()`
+- Fix: wrap `error_log()` calls with `WP_DEBUG` condition
+- Fix: missing translators comments in `GalleryMetabox` and `SettingsPage`
+- Fix: `EscapeOutput` false positive in `MetaApiClient` (int code passed to exception)
+- Fix: phpcs ignore with justification for `meta_query` (covered by DB index)
+- Fix: remove schema change (`CREATE INDEX`) on activation — incompatible with WordPress.org guidelines
+- Add: `readme.txt` for WordPress.org compatibility
+
+### 1.2.1
+- Fix: correct Publications count in sync stats by introducing `_scps_account_id`
+
+### 1.2.0
+- Enhance encryption: AES-256-CBC + HMAC-SHA256, optional `SCPS_ENCRYPTION_SALT` for key rotation
+- Refacto: inject `PostSyncer` via constructor in `SyncRunner`
 
 ---
 
