@@ -58,7 +58,7 @@ class PostSyncer {
                 . ' | post_data: ' . wp_json_encode(array_merge($post_data, ['post_content' => mb_substr($post_data['post_content'] ?? '', 0, 100)]))
                 . ' | source_id: ' . ($normalized_post['source_id'] ?? 'n/a'));
             throw new \RuntimeException(
-                'Failed to save social post: ' . $result->get_error_message()
+                'Failed to save social post: ' . esc_html($result->get_error_message())
             );
         }
 

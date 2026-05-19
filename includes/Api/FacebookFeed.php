@@ -123,7 +123,7 @@ class FacebookFeed implements FeedInterface {
         }
 
         throw new MetaApiException(
-            sprintf('No Page Access Token found for page %s. Make sure the page is listed under /me/accounts (the connected Facebook account must be an admin of this page).', $pageId),
+            sprintf('No Page Access Token found for page %s. Make sure the page is listed under /me/accounts (the connected Facebook account must be an admin of this page).', esc_html($pageId)),
             403
         );
     }
